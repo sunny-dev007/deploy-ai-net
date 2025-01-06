@@ -1,0 +1,9 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <path d="M0 0h100v100H0z" fill="none"/>
+  <path d="M30 10h40v5H30zM10 30h5v40h-5zM85 30h5v40h-5zM30 85h40v5H30z" fill="currentColor"/>
+  <circle cx="10" cy="10" r="2" fill="currentColor"/>
+  <circle cx="90" cy="10" r="2" fill="currentColor"/>
+  <circle cx="10" cy="90" r="2" fill="currentColor"/>
+  <circle cx="90" cy="90" r="2" fill="currentColor"/>
+  <path d="M15 10h10M75 10h10M10 15v10M10 75v10M90 15v10M90 75v10M15 90h10M75 90h10" stroke="currentColor" stroke-width="2"/>
+</svg> 
