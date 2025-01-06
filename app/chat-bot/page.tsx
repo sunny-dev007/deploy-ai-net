@@ -27,6 +27,23 @@ export default function ChatBot() {
   const [isAdvancedModel, setIsAdvancedModel] = useState(false);
 
   useEffect(() => {
+    // This code will only run on the client side
+    if (typeof window !== 'undefined') {
+      // Example client-side logic
+      const handleResize = () => {
+        console.log('Window resized:', window.innerWidth);
+      };
+
+      window.addEventListener('resize', handleResize);
+
+      // Cleanup function to remove the event listener
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
     // Add initial greeting message
     if (messages.length === 0) {
       setMessages([{
@@ -130,12 +147,12 @@ export default function ChatBot() {
               key={i}
               className="absolute w-64 h-64 bg-purple-500/5 dark:bg-purple-500/10 rounded-full"
               initial={{ 
-                x: Math.random() * window.innerWidth, 
-                y: Math.random() * window.innerHeight 
+                x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0), 
+                y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0)
               }}
               animate={{
-                x: [null, Math.random() * window.innerWidth],
-                y: [null, Math.random() * window.innerHeight],
+                x: [null, Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0)],
+                y: [null, Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0)],
                 scale: [1, 1.2, 1]
               }}
               transition={{
