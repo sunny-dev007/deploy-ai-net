@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import React, { useState } from "react";
+import LottieLogo from './LottieLogo';
 
 export default function Nav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,14 +14,12 @@ export default function Nav() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3">
-              <Image 
-                src="/vercel.svg" 
-                alt="Logo" 
-                width={32} 
-                height={32} 
-                className="dark:invert"
-              />
-              <span className="font-bold text-xl">MyApp</span>
+              <div className="flex items-center">
+                <LottieLogo />
+                <span className="ml-2 font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">
+                  AI Studio
+                </span>
+              </div>
             </Link>
           </div>
           
