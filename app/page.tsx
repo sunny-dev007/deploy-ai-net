@@ -236,803 +236,437 @@ export default function Home() {
           </div>
         </section>
 
-        {/* AI Assistant Tools Section */}
-        <section className="py-24 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/circuit-pattern.svg')] opacity-5" />
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                AI-Powered Assistant Suite
-              </h2>
-              <p className="text-xl text-gray-600 dark:text-gray-300">
-                Intelligent tools designed for both technical and non-technical professionals
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Content Creation Assistant */}
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700"
-              >
-                <div className="relative h-48 mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-pink-500 to-rose-500">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FaPencilAlt className="w-16 h-16 text-white opacity-75" />
-                  </div>
-                  <div className="absolute inset-0 bg-[url('/wave-pattern.svg')] opacity-20" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Content Creation Assistant
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Generate blog posts, marketing copy, and social media content with AI assistance
-                </p>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="w-4 h-4 text-green-500 mr-2" />
-                    SEO-optimized content
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="w-4 h-4 text-green-500 mr-2" />
-                    Multiple tone options
-                  </li>
-                </ul>
-              </motion.div>
-
-              {/* Code Assistant */}
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700"
-              >
-                <div className="relative h-48 mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FaCode className="w-16 h-16 text-white opacity-75" />
-                  </div>
-                  <div className="absolute inset-0 bg-[url('/code-pattern.svg')] opacity-20" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Intelligent Code Assistant
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Write, debug, and optimize code across multiple programming languages
-                </p>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="w-4 h-4 text-green-500 mr-2" />
-                    Code completion
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="w-4 h-4 text-green-500 mr-2" />
-                    Bug detection
-                  </li>
-                </ul>
-              </motion.div>
-
-              {/* Business Intelligence */}
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700"
-              >
-                <div className="relative h-48 mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-violet-500 to-purple-500">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FaChartLine className="w-16 h-16 text-white opacity-75" />
-                  </div>
-                  <div className="absolute inset-0 bg-[url('/analytics-pattern.svg')] opacity-20" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Business Intelligence
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Transform data into actionable insights with AI-powered analytics
-                </p>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="w-4 h-4 text-green-500 mr-2" />
-                    Market analysis
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="w-4 h-4 text-green-500 mr-2" />
-                    Trend prediction
-                  </li>
-                </ul>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* AI Copilot Section - Updated Grid */}
-        <section className="py-24 bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
-          {/* Background animations remain the same */}
+        {/* AI Copilot Suite Section */}
+        <section className="py-24 bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 relative overflow-hidden">
+          {/* Background Effect */}
           <div className="absolute inset-0">
-            <motion.div
-              className="absolute inset-0 opacity-10"
-              animate={{
-                background: [
-                  'radial-gradient(circle at 0% 0%, #4F46E5 0%, transparent 50%)',
-                  'radial-gradient(circle at 100% 100%, #4F46E5 0%, transparent 50%)',
-                  'radial-gradient(circle at 0% 0%, #4F46E5 0%, transparent 50%)',
-                ],
-              }}
-              transition={{ duration: 10, repeat: Infinity }}
-            />
-            
-            {/* Floating Code Snippets */}
-            {[...Array(5)].map((_, i) => (
+            <div className="absolute inset-0 bg-[url('/neural-pattern.svg')] opacity-5" />
+            {/* Animated particles */}
+            {[...Array(30)].map((_, i) => (
               <motion.div
                 key={i}
-                className="absolute text-indigo-300/20 text-xs font-mono"
-                initial={{
-                  x: `${Math.random() * 100}%`,
-                  y: `${Math.random() * 100}%`,
+                className="absolute rounded-full bg-white/10"
+                style={{
+                  width: Math.random() * 4 + 2 + 'px',
+                  height: Math.random() * 4 + 2 + 'px',
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
                 }}
                 animate={{
-                  y: [0, -100, 0],
+                  y: [0, -30, 0],
                   opacity: [0.2, 0.5, 0.2],
                 }}
                 transition={{
-                  duration: Math.random() * 5 + 5,
+                  duration: Math.random() * 3 + 2,
                   repeat: Infinity,
-                  delay: Math.random() * 2,
+                  ease: "easeInOut",
                 }}
-              >
-                {`const ai = new AI();`}
-              </motion.div>
+              />
             ))}
           </div>
-
+          
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="text-center mb-16">
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-4xl font-bold text-white mb-4"
-              >
+            <motion.div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-white mb-4">
                 AI Copilot Suite
-              </motion.h2>
-              <motion.p
+              </h2>
+              <p className="text-xl text-gray-300">
+                Intelligent assistants for every professional need
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* 1. Developer Copilot */}
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="text-xl text-indigo-200"
+                whileHover={{ y: -5 }}
+                className="relative group h-[420px]"
               >
-                Intelligent assistants for every professional need
-              </motion.p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* First Row */}
-              <div className="space-y-8">
-                {/* Code Copilot - Keep existing but adjust height */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 relative overflow-hidden h-[600px]"
-                >
-                  {/* Background Code Pattern Animation */}
-                  <div className="absolute inset-0 opacity-5">
-                    {[...Array(15)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute text-xs font-mono whitespace-nowrap"
-                        initial={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                          opacity: [0.5, 1, 0.5],
-                        }}
-                        transition={{
-                          duration: Math.random() * 3 + 2,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                      >
-                        {`const optimize = (code) => AI.enhance(code);`}
-                      </motion.div>
-                    ))}
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
+                <div className="relative h-full bg-gray-900/80 backdrop-blur-xl rounded-xl border border-orange-500/20 p-6 flex flex-col">
+                  {/* Animation Container */}
+                  <div className="h-32 mb-4 rounded-lg bg-black/50 p-4 relative overflow-hidden">
+                    {/* Typing Code Animation */}
+                    <motion.div
+                      animate={{
+                        opacity: [1, 1, 0],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        times: [0, 0.5, 1],
+                      }}
+                      className="text-xs font-mono text-orange-300/70 space-y-1"
+                    >
+                      {[
+                        'async function develop() {',
+                        '  const code = await AI.suggest();',
+                        '  return optimize(code);',
+                        '}'
+                      ].map((line, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.2 }}
+                        >
+                          {line}
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                    {/* Cursor Animation */}
+                    <motion.div
+                      className="absolute bottom-4 left-4 w-2 h-4 bg-orange-400/70"
+                      animate={{
+                        opacity: [1, 0, 1],
+                      }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                      }}
+                    />
                   </div>
 
-                  <div className="relative">
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl blur-xl opacity-50" />
-                        <div className="relative p-3 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500">
-                          <FaCode className="w-8 h-8 text-white" />
-                        </div>
+                  {/* Content */}
+                  <h3 className="text-lg font-semibold text-orange-400 mb-2">Developer Copilot</h3>
+                  <p className="text-gray-300 text-sm mb-4 flex-grow">
+                    AI-powered code suggestions, documentation generation, and development workflow optimization.
+                  </p>
+
+                  {/* Features */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-blue-400 mr-2" />
+                      <span>Smart code completion</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-blue-400 mr-2" />
+                      <span>Auto documentation</span>
+                    </div>
                   </div>
-                  <div>
-                        <h3 className="text-2xl font-bold text-white">AI Code Copilot</h3>
-                        <p className="text-indigo-200">Your Intelligent Programming Partner</p>
+
+                  {/* Updated Button with Link */}
+                  <Link href="/code">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-medium hover:from-orange-600 hover:to-red-600 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-orange-500/25"
+                    >
+                      Try Developer Copilot
+                      <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </motion.button>
+                  </Link>
+                </div>
+              </motion.div>
+
+              {/* 2. DevSecOps Copilot */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -5 }}
+                className="relative group h-[420px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
+                <div className="relative h-full bg-gray-900/80 backdrop-blur-xl rounded-xl border border-emerald-500/20 p-6 flex flex-col">
+                  {/* Animation Container */}
+                  <div className="h-32 mb-4 rounded-lg bg-black/50 p-4 relative overflow-hidden">
+                    {/* Pipeline Animation */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {/* CI/CD Pipeline Flow */}
+                      <div className="relative w-full h-16">
+                        {/* Pipeline Stages */}
+                        {['Build', 'Test', 'Deploy'].map((stage, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute top-1/2 -translate-y-1/2"
+                            style={{ left: `${i * 35 + 10}%` }}
+                          >
+                            {/* Stage Container */}
+                            <motion.div
+                              className="w-16 h-16 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex flex-col items-center justify-center"
+                              animate={{
+                                scale: [1, 1.1, 1],
+                                borderColor: ['rgba(16, 185, 129, 0.2)', 'rgba(16, 185, 129, 0.4)', 'rgba(16, 185, 129, 0.2)']
+                              }}
+                              transition={{
+                                duration: 2,
+                                delay: i * 0.5,
+                                repeat: Infinity,
+                              }}
+                            >
+                              {/* Stage Icon */}
+                              <motion.div
+                                className="text-emerald-400 mb-1"
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{
+                                  duration: 2,
+                                  delay: i * 0.5,
+                                  repeat: Infinity,
+                                }}
+                              >
+                                {i === 0 ? <FaCogs className="w-5 h-5" /> : 
+                                 i === 1 ? <FaBug className="w-5 h-5" /> : 
+                                          <FaCloud className="w-5 h-5" />}
+                              </motion.div>
+                              {/* Stage Name */}
+                              <span className="text-xs text-emerald-400/70">{stage}</span>
+                            </motion.div>
+
+                            {/* Connecting Lines */}
+                            {i < 2 && (
+                              <motion.div
+                                className="absolute top-1/2 -translate-y-1/2 h-px bg-gradient-to-r from-emerald-500/50 to-emerald-500/20"
+                                style={{
+                                  left: '100%',
+                                  width: '80px',
+                                }}
+                              >
+                                {/* Moving Dot */}
+                                <motion.div
+                                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-emerald-400"
+                                  animate={{
+                                    x: [0, 80, 0],
+                                  }}
+                                  transition={{
+                                    duration: 2,
+                                    delay: i * 0.5,
+                                    repeat: Infinity,
+                                    ease: "linear",
+                                  }}
+                                />
+                              </motion.div>
+                            )}
+                          </motion.div>
+                        ))}
+
+                        {/* Security Shield Overlay */}
+                        <motion.div
+                          className="absolute inset-0 flex items-center justify-center"
+                          animate={{
+                            opacity: [0.1, 0.3, 0.1],
+                          }}
+                          transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
+                        >
+                          <FaLock className="w-24 h-24 text-emerald-400/10" />
+                        </motion.div>
                       </div>
                     </div>
 
-                    {/* Interactive Code Window */}
-                    <div className="mb-8 bg-gray-900/50 rounded-xl border border-white/10 overflow-hidden">
-                      {/* Code Editor Tabs */}
-                      <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10">
-                        {['Review', 'Optimize', 'Test'].map((tab, i) => (
-                          <motion.div
-                            key={tab}
-                            className="px-3 py-1 rounded-md text-sm text-indigo-200 bg-white/5"
-                            animate={{
-                              opacity: [0.5, 1, 0.5],
-                            }}
-                            transition={{
-                              duration: 2,
-                              delay: i * 0.3,
-                              repeat: Infinity,
-                            }}
-                          >
-                            {tab}
-                          </motion.div>
-                        ))}
-                      </div>
+                    {/* Scanning Effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/5 to-transparent"
+                      animate={{
+                        y: [-100, 100],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                    />
+                  </div>
 
-                      {/* Animated Code Content */}
-                      <div className="p-4 font-mono text-sm">
+                  {/* Content */}
+                  <h3 className="text-lg font-semibold text-emerald-400 mb-2">DevSecOps Copilot</h3>
+                  <p className="text-gray-300 text-sm mb-4 flex-grow">
+                    Automated security scanning, compliance checks, and infrastructure monitoring for secure deployments.
+                  </p>
+
+                  {/* Features */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-emerald-400 mr-2" />
+                      <span>Security scanning</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-emerald-400 mr-2" />
+                      <span>Compliance automation</span>
+                    </div>
+                  </div>
+
+                  {/* Updated Button with Link */}
+                  <Link href="/devops">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-medium hover:from-emerald-600 hover:to-teal-600 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-emerald-500/25"
+                    >
+                      Try DevSecOps Copilot
+                      <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </motion.button>
+                  </Link>
+                </div>
+              </motion.div>
+
+              {/* 3. Content Writing Copilot */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -5 }}
+                className="relative group h-[420px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
+                <div className="relative h-full bg-gray-900/80 backdrop-blur-xl rounded-xl border border-purple-500/20 p-6 flex flex-col">
+                  {/* Animation Container */}
+                  <div className="h-32 mb-4 rounded-lg bg-black/50 p-4 relative overflow-hidden">
+                    {/* Typing Text Animation */}
+                    <motion.div
+                      className="absolute inset-0 flex flex-col justify-center"
+                    >
+                      {[
+                        { width: '80%', delay: 0 },
+                        { width: '60%', delay: 0.5 },
+                        { width: '70%', delay: 1 }
+                      ].map((line, i) => (
                         <motion.div
-                          animate={{
-                            opacity: [1, 0.7, 1],
+                          key={i}
+                          className="h-2 rounded-full bg-purple-500/20 mb-2"
+                          initial={{ width: 0 }}
+                          animate={{ 
+                            width: line.width,
+                            opacity: [0.5, 1, 0.5]
                           }}
                           transition={{
                             duration: 2,
+                            delay: line.delay,
                             repeat: Infinity,
+                            ease: "easeInOut"
                           }}
-                          className="space-y-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity }}
-                              className="w-2 h-2 rounded-full bg-green-400"
-                            />
-                            <span className="text-green-400">// Optimizing code...</span>
-                          </div>
-                          <div className="text-blue-400">function optimizePerformance() {'{'}</div>
-                          <motion.div
-                            animate={{
-                              x: [0, 5, 0],
-                              opacity: [1, 0.7, 1],
-                            }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="pl-4 text-indigo-300"
-                          >
-                            const enhancedCode = AI.analyze(code);
-                          </motion.div>
-                          <motion.div
-                            animate={{
-                              x: [0, 5, 0],
-                              opacity: [1, 0.7, 1],
-                            }}
-                            transition={{ duration: 2, delay: 0.3, repeat: Infinity }}
-                            className="pl-4 text-indigo-300"
-                          >
-                            return AI.optimize(enhancedCode);
-                          </motion.div>
-                          <div className="text-blue-400">{'}'}</div>
-                        </motion.div>
-                      </div>
-                    </div>
-
-                    {/* Features List */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                      {[
-                        { icon: <FaCheck />, text: "Smart code generation" },
-                        { icon: <FaBug />, text: "Real-time debugging" },
-                        { icon: <FaMagic />, text: "Code optimization" },
-                        { icon: <FaCode />, text: "Multi-language support" }
-                      ].map((feature, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className="flex items-center gap-2 text-indigo-100"
-                        >
-                          <span className="text-green-400">{feature.icon}</span>
-                          <span>{feature.text}</span>
-                        </motion.div>
+                        />
                       ))}
-                    </div>
-
-                    {/* Updated CTA Button */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Link
-                        href="/code"
-                        className="group flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium transition-all hover:from-orange-600 hover:to-red-600 hover:shadow-lg hover:shadow-orange-500/25"
-                      >
-                        Try Code Copilot
-                        <motion.span
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <FaArrowRight className="w-4 h-4" />
-                        </motion.span>
-                      </Link>
-                    </motion.div>
-                  </div>
-                </motion.div>
-
-                {/* NEW: Content Copilot */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 relative overflow-hidden h-[600px]"
-                >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    {[...Array(15)].map((_, i) => (
+                      
+                      {/* Animated Cursor */}
                       <motion.div
-                        key={i}
-                        className="absolute text-xs font-mono whitespace-nowrap"
-                        initial={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-1 h-4 bg-purple-400"
                         animate={{
-                          opacity: [0.5, 1, 0.5],
+                          opacity: [1, 0, 1]
                         }}
                         transition={{
-                          duration: Math.random() * 3 + 2,
-                          repeat: Infinity,
-                          ease: "linear",
+                          duration: 1,
+                          repeat: Infinity
                         }}
-                      >
-                        {`content.generate('blog-post');`}
-                      </motion.div>
+                      />
+
+                      {/* Floating Icons */}
+                      {[FaPencilAlt, FaBullhorn, FaLanguage].map((Icon, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute"
+                          style={{
+                            top: `${20 + i * 30}%`,
+                            right: '10%'
+                          }}
+                          animate={{
+                            y: [-5, 5, -5],
+                            opacity: [0.3, 0.7, 0.3]
+                          }}
+                          transition={{
+                            duration: 3,
+                            delay: i * 0.5,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        >
+                          <Icon className="w-4 h-4 text-purple-400/50" />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-purple-400 mb-2">Content Writing Copilot</h3>
+                  <p className="text-gray-300 text-sm mb-4 flex-grow">
+                    AI-powered content creation assistant for blogs, social media, and marketing materials.
+                  </p>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-purple-400 mr-2" />
+                      <span>SEO-optimized writing</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-purple-400 mr-2" />
+                      <span>Multi-format content</span>
+                    </div>
+                  </div>
+
+                  {/* Button with Link */}
+                  <Link href="/content">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-purple-500/25"
+                    >
+                      Try Content Copilot
+                      <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </motion.button>
+                  </Link>
+                </div>
+              </motion.div>
+
+              {/* 4. Report Analysis Copilot */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -5 }}
+                className="relative group h-[420px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
+                <div className="relative h-full bg-gray-900/80 backdrop-blur-xl rounded-xl border border-blue-500/20 p-6 flex flex-col">
+                  {/* Animation Container */}
+                  <div className="h-32 mb-4 rounded-lg bg-black/50 p-4 relative overflow-hidden">
+                    {[...Array(3)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute bottom-4 w-6 bg-blue-500/40 rounded-t-lg"
+                        style={{ left: `${i * 30 + 10}%` }}
+                        animate={{
+                          height: ['40px', '60px', '40px'],
+                        }}
+                        transition={{
+                          duration: 2,
+                          delay: i * 0.3,
+                          repeat: Infinity,
+                        }}
+                      />
                     ))}
                   </div>
 
-                  <div className="relative">
-                    {/* Header */}
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl blur-xl opacity-50" />
-                        <div className="relative p-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500">
-                          <FaPencilAlt className="w-8 h-8 text-white" />
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-white">AI Content Copilot</h3>
-                        <p className="text-indigo-200">Your Creative Writing Assistant</p>
-                      </div>
+                  <h3 className="text-lg font-semibold text-blue-400 mb-2">Report Analysis Copilot</h3>
+                  <p className="text-gray-300 text-sm mb-4 flex-grow">
+                    Automated analysis and summarization of complex reports and data structures.
+                  </p>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-blue-400 mr-2" />
+                      <span>Smart data processing</span>
                     </div>
-
-                    {/* Interactive Content Window */}
-                    <div className="mb-8 bg-gray-900/50 rounded-xl border border-white/10 overflow-hidden">
-                      {/* Content Editor Tabs */}
-                      <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10">
-                        {['Write', 'Edit', 'SEO'].map((tab, i) => (
-                          <motion.div
-                            key={tab}
-                            className="px-3 py-1 rounded-md text-sm text-indigo-200 bg-white/5"
-                            animate={{
-                              opacity: [0.5, 1, 0.5],
-                            }}
-                            transition={{
-                              duration: 2,
-                              delay: i * 0.3,
-                              repeat: Infinity,
-                            }}
-                          >
-                            {tab}
-                          </motion.div>
-                        ))}
-                      </div>
-
-                      {/* Content Generation Animation */}
-                      <div className="p-4 font-mono text-sm">
-                        <motion.div
-                          animate={{
-                            opacity: [1, 0.7, 1],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                          }}
-                          className="space-y-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity }}
-                              className="w-2 h-2 rounded-full bg-green-400"
-                            />
-                            <span className="text-green-400">// Generating content...</span>
-                          </div>
-                          <motion.div
-                            animate={{
-                              opacity: [0, 1],
-                            }}
-                            transition={{
-                              duration: 2,
-                              repeat: Infinity,
-                            }}
-                          >
-                            <div className="text-indigo-300">
-                              Creating engaging blog post...
-                            </div>
-                            <div className="text-indigo-300">
-                              Optimizing for SEO...
-                            </div>
-                            <div className="text-indigo-300">
-                              Enhancing readability...
-                            </div>
-                          </motion.div>
-                        </motion.div>
-                      </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <FaCheck className="w-4 h-4 text-blue-400 mr-2" />
+                      <span>Automated insights</span>
                     </div>
-
-                    {/* Features */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                      {[
-                        { icon: <FaPencilAlt />, text: "Blog Writing" },
-                        { icon: <FaBullhorn />, text: "Social Media" },
-                        { icon: <FaSearchDollar />, text: "SEO Optimization" },
-                        { icon: <FaLanguage />, text: "Multi-language" }
-                      ].map((feature, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className="flex items-center gap-2 text-indigo-100"
-                        >
-                          <span className="text-green-400">{feature.icon}</span>
-                          <span>{feature.text}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {/* CTA Button */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Link
-                        href="/content"
-                        className="group flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium transition-all hover:from-green-600 hover:to-emerald-600 hover:shadow-lg hover:shadow-green-500/25"
-                      >
-                        Try Content Copilot
-                        <motion.span
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                  <FaArrowRight className="w-4 h-4" />
-                        </motion.span>
-                      </Link>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Second Row */}
-              <div className="space-y-8">
-                {/* DevOps Copilot - Keep existing but adjust height */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 relative overflow-hidden h-[600px]"
-                >
-                  {/* Background DevOps Pattern Animation */}
-                  <div className="absolute inset-0 opacity-5">
-                    {[...Array(15)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute text-xs font-mono whitespace-nowrap"
-                        initial={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                          opacity: [0.5, 1, 0.5],
-                        }}
-                        transition={{
-                          duration: Math.random() * 3 + 2,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                      >
-                        {`kubectl apply -f deployment.yaml`}
-                      </motion.div>
-                    ))}
                   </div>
 
-                  <div className="relative">
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl blur-xl opacity-50" />
-                        <div className="relative p-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500">
-                    <FaCogs className="w-8 h-8 text-white" />
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-white">AI-DevOps Copilot</h3>
-                        <p className="text-indigo-200">Your DevOps Automation Partner</p>
-                      </div>
-                    </div>
-
-                    {/* Interactive DevOps Window */}
-                    <div className="mb-8 bg-gray-900/50 rounded-xl border border-white/10 overflow-hidden">
-                      {/* DevOps Console Tabs */}
-                      <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10">
-                        {['Pipeline', 'Deploy', 'Monitor'].map((tab, i) => (
-                          <motion.div
-                            key={tab}
-                            className="px-3 py-1 rounded-md text-sm text-indigo-200 bg-white/5"
-                            animate={{
-                              opacity: [0.5, 1, 0.5],
-                            }}
-                            transition={{
-                              duration: 2,
-                              delay: i * 0.3,
-                              repeat: Infinity,
-                            }}
-                          >
-                            {tab}
-                          </motion.div>
-                        ))}
-                      </div>
-
-                      {/* Animated DevOps Content */}
-                      <div className="p-4 font-mono text-sm">
-                        <motion.div
-                          animate={{
-                            opacity: [1, 0.7, 1],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                          }}
-                          className="space-y-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity }}
-                              className="w-2 h-2 rounded-full bg-green-400"
-                            />
-                            <span className="text-green-400">// Deploying infrastructure...</span>
-                          </div>
-                          <div className="text-blue-400">pipeline {'{'}</div>
-                          <motion.div
-                            animate={{
-                              x: [0, 5, 0],
-                              opacity: [1, 0.7, 1],
-                            }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="pl-4 text-indigo-300"
-                          >
-                            stage('Build') {'{'}
-                          </motion.div>
-                          <motion.div
-                            animate={{
-                              x: [0, 5, 0],
-                              opacity: [1, 0.7, 1],
-                            }}
-                            transition={{ duration: 2, delay: 0.3, repeat: Infinity }}
-                            className="pl-8 text-indigo-300"
-                          >
-                            docker.build("app:latest")
-                          </motion.div>
-                          <div className="pl-4 text-blue-400">{'}'}</div>
-                          <div className="text-blue-400">{'}'}</div>
-                        </motion.div>
-                      </div>
-                    </div>
-
-                    {/* Features List */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                      {[
-                        { icon: <FaCogs />, text: "Infrastructure as Code" },
-                        { icon: <FaCloud />, text: "Cloud Automation" },
-                        { icon: <FaLock />, text: "Security Scanning" },
-                        { icon: <FaChartLine />, text: "Performance Monitoring" }
-                      ].map((feature, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className="flex items-center gap-2 text-indigo-100"
-                        >
-                          <span className="text-green-400">{feature.icon}</span>
-                          <span>{feature.text}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {/* Updated CTA Button */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Link
-                        href="/devops"
-                        className="group flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium transition-all hover:from-purple-600 hover:to-indigo-600 hover:shadow-lg hover:shadow-purple-500/25"
-                      >
-                        Explore DevOps Tools
-                        <motion.span
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <FaArrowRight className="w-4 h-4" />
-                        </motion.span>
-                      </Link>
-                    </motion.div>
-                  </div>
-                </motion.div>
-
-                {/* NEW: Analytics Copilot */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 relative overflow-hidden h-[600px]"
-                >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    {[...Array(15)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute text-xs font-mono whitespace-nowrap"
-                        initial={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                          opacity: [0.5, 1, 0.5],
-                        }}
-                        transition={{
-                          duration: Math.random() * 3 + 2,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                      >
-                        {`analytics.analyze(data);`}
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <div className="relative">
-                    {/* Header */}
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl blur-xl opacity-50" />
-                        <div className="relative p-3 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-500">
-                          <FaChartLine className="w-8 h-8 text-white" />
-                        </div>
-                  </div>
-                  <div>
-                        <h3 className="text-2xl font-bold text-white">AI Analytics Copilot</h3>
-                        <p className="text-indigo-200">Your Business Analytics Partner</p>
-                      </div>
-                    </div>
-
-                    {/* Interactive Analytics Window */}
-                    <div className="mb-8 bg-gray-900/50 rounded-xl border border-white/10 overflow-hidden">
-                      {/* Analytics Console Tabs */}
-                      <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10">
-                        {['Dashboard', 'Reports', 'Predictions'].map((tab, i) => (
-                          <motion.div
-                            key={tab}
-                            className="px-3 py-1 rounded-md text-sm text-indigo-200 bg-white/5"
-                            animate={{
-                              opacity: [0.5, 1, 0.5],
-                            }}
-                            transition={{
-                              duration: 2,
-                              delay: i * 0.3,
-                              repeat: Infinity,
-                            }}
-                          >
-                            {tab}
-                          </motion.div>
-                        ))}
-                      </div>
-
-                      {/* Animated Analytics Content */}
-                      <div className="p-4 font-mono text-sm">
-                        <motion.div
-                          animate={{
-                            opacity: [1, 0.7, 1],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                          }}
-                          className="space-y-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity }}
-                              className="w-2 h-2 rounded-full bg-green-400"
-                            />
-                            <span className="text-green-400">// Analyzing data...</span>
-                          </div>
-                          <motion.div
-                            animate={{
-                              opacity: [0, 1],
-                            }}
-                            transition={{
-                              duration: 2,
-                              repeat: Infinity,
-                            }}
-                          >
-                            <div className="text-indigo-300">
-                              Analyzing data...
-                            </div>
-                            <div className="text-indigo-300">
-                              Generating reports...
-                            </div>
-                            <div className="text-indigo-300">
-                              Predicting trends...
-                            </div>
-                          </motion.div>
-                        </motion.div>
-                      </div>
-                    </div>
-
-                    {/* Features */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                      {[
-                        { icon: <FaChartLine />, text: "Market Analysis" },
-                        { icon: <FaSearchDollar />, text: "Revenue Prediction" },
-                        { icon: <FaUser />, text: "Customer Segmentation" },
-                        { icon: <FaCogs />, text: "Infrastructure Monitoring" }
-                      ].map((feature, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className="flex items-center gap-2 text-indigo-100"
-                        >
-                          <span className="text-green-400">{feature.icon}</span>
-                          <span>{feature.text}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {/* CTA Button */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Link
-                        href="/analytics"
-                        className="group flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white font-medium transition-all hover:from-violet-600 hover:to-purple-600 hover:shadow-lg hover:shadow-violet-500/25"
-                      >
-                        Explore Analytics Tools
-                        <motion.span
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <FaArrowRight className="w-4 h-4" />
-                        </motion.span>
-                      </Link>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              </div>
+                  {/* Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium hover:from-blue-600 hover:to-cyan-600 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/25"
+                  >
+                    Try Report Copilot
+                    <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </motion.button>
+                </div>
+              </motion.div>
             </div>
           </div>
         </section>
@@ -1070,7 +704,7 @@ export default function Home() {
                 >
                 Intelligent agents that work autonomously to boost your productivity
                 </motion.p>
-            </div>
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Report Analysis Agent */}
@@ -1177,7 +811,7 @@ export default function Home() {
                         <FaEnvelope className="w-8 h-8 text-emerald-400/70" />
                       </div>
                     </motion.div>
-              </div>
+                  </div>
                   <h3 className="text-xl font-semibold mb-2">Review Email Agent</h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
                     Smart email analysis and response suggestions

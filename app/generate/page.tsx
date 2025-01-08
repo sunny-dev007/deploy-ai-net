@@ -1,17 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { FaMagic, FaImage, FaRobot, FaFileAlt } from 'react-icons/fa';
 import LoadingDots from '../components/LoadingDots';
 import AIImageProcessingLoader from '../components/AIImageProcessingLoader';
+import PasscodeModal from '../components/PasscodeModal';
 
 export default function Generate() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState('');
   const [error, setError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Clear authentication on component mount
+    sessionStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+  }, []);
+
+  const handleAuthentication = () => {
+    setIsAuthenticated(true);
+    sessionStorage.setItem('isAuthenticated', 'true');
+  };
+
+  const downloadImage = async (imageUrl: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ai-generated-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,25 +74,9 @@ export default function Generate() {
     }
   };
 
-  const downloadImage = async (imageUrl: string) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `ai-generated-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading image:', error);
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-[#fafafa] dark:bg-gray-900">
+      {!isAuthenticated && <PasscodeModal onAuthenticate={handleAuthentication} />}
       <Nav />
       <main className="flex-grow">
         {/* Hero Section */}

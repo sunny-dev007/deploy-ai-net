@@ -44,17 +44,17 @@ export default function Nav() {
               Contact
             </Link>
             <Link 
-              href="/login" 
+              href="/not-found" 
               className="bg-black text-white hover:bg-gray-800 transition-colors px-4 py-2 rounded-full text-sm font-medium"
             >
               Login
             </Link>
-            <Link 
+            {/* <Link 
               href="/pricing" 
               className="text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-md text-sm font-medium"
             >
               Pricing
-            </Link>
+            </Link> */}
           </div>
 
           {/* Mobile menu button */}

@@ -10,6 +10,7 @@ import AIProcessingLoader from '../components/AIProcessingLoader';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import PasscodeModal from '../components/PasscodeModal';
 
 type CodeMode = 'generate' | 'explain' | 'debug' | 'optimize' | 'convert' | 'document';
 
@@ -73,6 +74,18 @@ export default function CodeCopilot() {
   const [streamedOutput, setStreamedOutput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const streamTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Clear authentication on component mount
+    sessionStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+  }, []);
+
+  const handleAuthentication = () => {
+    setIsAuthenticated(true);
+    sessionStorage.setItem('isAuthenticated', 'true');
+  };
 
   // Streaming effect for code output
   const streamResponse = (response: string) => {
@@ -139,6 +152,7 @@ export default function CodeCopilot() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fafafa] dark:bg-gray-900">
+      {!isAuthenticated && <PasscodeModal onAuthenticate={handleAuthentication} />}
       <Nav />
       <main className="flex-grow">
         {/* Hero Section */}

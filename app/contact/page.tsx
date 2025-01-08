@@ -196,12 +196,12 @@ export default function Contact() {
                       >
                         <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl flex items-center justify-center">
                           <div className="text-blue-400">{item.icon}</div>
-                        </div>
-                        <div>
+                  </div>
+                  <div>
                           <h3 className="text-lg font-semibold text-white">{item.title}</h3>
                           <p className="text-gray-300">{item.content}</p>
                           <p className="text-sm text-gray-400">{item.sub}</p>
-                        </div>
+                  </div>
                       </motion.div>
                     ))}
                   </div>
@@ -225,7 +225,7 @@ export default function Contact() {
                           {social.icon}
                         </motion.a>
                       ))}
-                    </div>
+                </div>
                   </div>
                 </div>
               </motion.div>
@@ -239,7 +239,7 @@ export default function Contact() {
               >
                 <h2 className="text-3xl font-bold text-white mb-8">Send a Message</h2>
                 <form onSubmit={handleSubmit} className="space-y-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Name Field */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
@@ -247,21 +247,21 @@ export default function Contact() {
                       transition={{ delay: 0.3 }}
                     >
                       <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                        Name
-                      </label>
+                      Name
+                    </label>
                       <div className="relative">
-                        <input
-                          type="text"
-                          name="name"
-                          id="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          required
+                    <input
+                      type="text"
+                      name="name"
+                      id="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
                           className={`block w-full px-4 py-3 rounded-xl bg-white/5 border ${
                             errors.name ? 'border-red-500' : 'border-white/10'
                           } text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm transition-all`}
-                          placeholder="John Doe"
-                        />
+                      placeholder="John Doe"
+                    />
                         <motion.div
                           initial={{ scaleX: 0 }}
                           animate={{ scaleX: formData.name ? 1 : 0 }}
@@ -269,7 +269,7 @@ export default function Contact() {
                           style={{ transformOrigin: 'left' }}
                         />
                       </div>
-                      {renderError('name')}
+                    {renderError('name')}
                     </motion.div>
 
                     {/* Email Field */}
@@ -279,21 +279,21 @@ export default function Contact() {
                       transition={{ delay: 0.4 }}
                     >
                       <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                        Email
-                      </label>
+                      Email
+                    </label>
                       <div className="relative">
-                        <input
-                          type="email"
-                          name="email"
-                          id="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          required
+                    <input
+                      type="email"
+                      name="email"
+                      id="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
                           className={`block w-full px-4 py-3 rounded-xl bg-white/5 border ${
                             errors.email ? 'border-red-500' : 'border-white/10'
                           } text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm transition-all`}
-                          placeholder="john@example.com"
-                        />
+                      placeholder="john@example.com"
+                    />
                         <motion.div
                           initial={{ scaleX: 0 }}
                           animate={{ scaleX: formData.email ? 1 : 0 }}
@@ -301,7 +301,7 @@ export default function Contact() {
                           style={{ transformOrigin: 'left' }}
                         />
                       </div>
-                      {renderError('email')}
+                    {renderError('email')}
                     </motion.div>
                   </div>
 
@@ -312,21 +312,21 @@ export default function Contact() {
                     transition={{ delay: 0.5 }}
                   >
                     <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
-                      Subject
-                    </label>
+                    Subject
+                  </label>
                     <div className="relative">
-                      <input
-                        type="text"
-                        name="subject"
-                        id="subject"
-                        value={formData.subject}
-                        onChange={handleChange}
-                        required
+                  <input
+                    type="text"
+                    name="subject"
+                    id="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
                         className={`block w-full px-4 py-3 rounded-xl bg-white/5 border ${
                           errors.subject ? 'border-red-500' : 'border-white/10'
                         } text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm transition-all`}
-                        placeholder="What would you like to discuss?"
-                      />
+                    placeholder="What would you like to discuss?"
+                  />
                       <motion.div
                         initial={{ scaleX: 0 }}
                         animate={{ scaleX: formData.subject ? 1 : 0 }}
@@ -334,7 +334,7 @@ export default function Contact() {
                         style={{ transformOrigin: 'left' }}
                       />
                     </div>
-                    {renderError('subject')}
+                  {renderError('subject')}
                   </motion.div>
 
                   {/* Message Field */}
@@ -344,21 +344,21 @@ export default function Contact() {
                     transition={{ delay: 0.6 }}
                   >
                     <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
-                      Message
-                    </label>
+                    Message
+                  </label>
                     <div className="relative">
-                      <textarea
-                        name="message"
-                        id="message"
-                        rows={6}
-                        value={formData.message}
-                        onChange={handleChange}
-                        required
+                  <textarea
+                    name="message"
+                    id="message"
+                    rows={6}
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
                         className={`block w-full px-4 py-3 rounded-xl bg-white/5 border ${
                           errors.message ? 'border-red-500' : 'border-white/10'
                         } text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm transition-all resize-none`}
-                        placeholder="Tell me about your project..."
-                      />
+                    placeholder="Tell me about your project..."
+                  />
                       <motion.div
                         initial={{ scaleX: 0 }}
                         animate={{ scaleX: formData.message ? 1 : 0 }}
@@ -366,11 +366,11 @@ export default function Contact() {
                         style={{ transformOrigin: 'left' }}
                       />
                     </div>
-                    {renderError('message')}
+                  {renderError('message')}
                   </motion.div>
 
                   {/* Status Message */}
-                  {status.message && (
+                {status.message && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -380,14 +380,14 @@ export default function Contact() {
                         'bg-blue-500/20 text-blue-200'
                       } backdrop-blur-sm border border-white/10`}
                     >
-                      {status.message}
+                    {status.message}
                     </motion.div>
-                  )}
+                )}
 
                   {/* Submit Button */}
                   <motion.button
-                    type="submit"
-                    disabled={isSubmitting}
+                  type="submit"
+                  disabled={isSubmitting}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`w-full flex items-center justify-center gap-2 py-4 px-6 rounded-xl 
@@ -397,8 +397,8 @@ export default function Contact() {
                       relative overflow-hidden group`}
                   >
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {isSubmitting ? (
-                      <>
+                  {isSubmitting ? (
+                    <>
                         <FaCircleNotch className="w-5 h-5 animate-spin" />
                         <span>Sending...</span>
                       </>
@@ -409,7 +409,7 @@ export default function Contact() {
                       </>
                     )}
                   </motion.button>
-                </form>
+              </form>
               </motion.div>
             </div>
           </div>

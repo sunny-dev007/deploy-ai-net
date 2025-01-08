@@ -11,6 +11,7 @@ import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import LoadingDots from '../components/LoadingDots';
 import ModelSwitch from '../components/ModelSwitch';
 import AILoader from '../components/AILoader';
+import PasscodeModal from '../components/PasscodeModal';
 
 type Message = {
   id: string;
@@ -25,6 +26,7 @@ export default function ChatBot() {
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [isAdvancedModel, setIsAdvancedModel] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     // This code will only run on the client side
@@ -60,6 +62,17 @@ export default function ChatBot() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    // Clear authentication on component mount
+    sessionStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+  }, []);
+
+  const handleAuthentication = () => {
+    setIsAuthenticated(true);
+    sessionStorage.setItem('isAuthenticated', 'true');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +148,8 @@ export default function ChatBot() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-[#fafafa] dark:bg-gray-900">
+      {!isAuthenticated && <PasscodeModal onAuthenticate={handleAuthentication} />}
       <Nav />
       <main className="flex-grow flex flex-col pt-16">
         {/* Animated Background Elements */}

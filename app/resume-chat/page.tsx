@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaRobot, FaUser, FaPaperPlane, FaRegTrashAlt, FaCopy } from 'react-icons/fa';
+import { FaRobot, FaUser, FaPaperPlane, FaRegTrashAlt, FaCopy, FaLock, FaShieldAlt } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -22,6 +22,12 @@ export default function ResumeChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [showPasscodeModal, setShowPasscodeModal] = useState(true);
+  const [passcode, setPasscode] = useState(['', '', '', '']);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passcodeError, setPasscodeError] = useState('');
+
+  const CORRECT_PASSCODE = '2606';
 
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
@@ -32,6 +38,41 @@ export default function ResumeChat() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const authenticated = sessionStorage.getItem('isAuthenticated');
+    if (authenticated === 'true') {
+      setIsAuthenticated(true);
+      setShowPasscodeModal(false);
+    }
+  }, []);
+
+  const handlePasscodeChange = (index: number, value: string) => {
+    if (value.length <= 1) {
+      const newPasscode = [...passcode];
+      newPasscode[index] = value;
+      setPasscode(newPasscode);
+
+      if (value !== '' && index < 3) {
+        const nextInput = document.getElementById(`passcode-${index + 1}`);
+        nextInput?.focus();
+      }
+    }
+  };
+
+  const handlePasscodeSubmit = () => {
+    const enteredPasscode = passcode.join('');
+    if (enteredPasscode === CORRECT_PASSCODE) {
+      setIsAuthenticated(true);
+      setShowPasscodeModal(false);
+      sessionStorage.setItem('isAuthenticated', 'true');
+      setPasscodeError('');
+    } else {
+      setPasscodeError('Invalid passcode. Please try again.');
+      setPasscode(['', '', '', '']);
+      document.getElementById('passcode-0')?.focus();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,6 +263,65 @@ export default function ResumeChat() {
         </div>
       </main>
       <Footer />
+
+      {showPasscodeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all animate-fadeIn">
+            <div className="text-center">
+              <div className="mb-6 relative">
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+                  <div className="w-20 h-20 bg-blue-500/10 rounded-full"></div>
+                </div>
+                <FaShieldAlt className="w-12 h-12 mx-auto text-blue-500 relative z-10" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Enter Passcode</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Please enter your 4-digit passcode to access the resume chat
+              </p>
+              
+              <div className="flex justify-center gap-3 mb-6">
+                {passcode.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`passcode-${index}`}
+                    type="password"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handlePasscodeChange(index, e.target.value)}
+                    className="w-12 h-12 text-center text-2xl font-bold rounded-lg border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && !digit && index > 0) {
+                        const prevInput = document.getElementById(`passcode-${index - 1}`);
+                        prevInput?.focus();
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+
+              {passcodeError && (
+                <div className="text-red-500 mb-4 animate-shake">
+                  {passcodeError}
+                </div>
+              )}
+
+              <button
+                onClick={handlePasscodeSubmit}
+                className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <FaLock className="w-4 h-4" />
+                Unlock Access
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAuthenticated && (
+        <div>
+          {/* Your existing JSX */}
+        </div>
+      )}
     </div>
   );
 } 
