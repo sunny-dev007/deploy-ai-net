@@ -657,14 +657,16 @@ export default function Home() {
                   </div>
 
                   {/* Button */}
+                  <Link href="/report">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium hover:from-blue-600 hover:to-cyan-600 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-500/25"
                   >
-                    Try Report Copilot
+                    Try Report Analysis Copilot
                     <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </motion.button>
+                  </Link>
                 </div>
               </motion.div>
             </div>

@@ -79,3 +79,102 @@ body {
 .animate-shake {
   animation: shake 0.5s ease-in-out;
 }
+
+/* Add these styles to your globals.css */
+.bg-animation-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-animation-circle {
+  position: absolute;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 9999px;
+  opacity: 0;
+  transform: translate(0, 0) scale(1);
+  will-change: transform, opacity;
+}
+
+/* AI Theme Animations */
+.neural-network {
+  background-image: radial-gradient(circle, rgba(139, 92, 246, 0.15) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: 0 0;
+  animation: neuralPulse 2s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes neuralPulse {
+  0% {
+    background-size: 50px 50px;
+    opacity: 0.5;
+  }
+  50% {
+    background-size: 60px 60px;
+    opacity: 0.4;
+  }
+  100% {
+    background-size: 50px 50px;
+    opacity: 0.5;
+  }
+}
+
+.data-flow {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(139, 92, 246, 0.5);
+  filter: blur(1px);
+  border-radius: 50%;
+}
+
+/* Optimize animations */
+.optimize-animation {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform: translateZ(0);
+  animation-timing-function: linear;
+}
+
+/* Chat bubble animation */
+.chat-bubble {
+  position: relative;
+}
+
+.chat-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 12px;
+  border-width: 8px 8px 0;
+  border-style: solid;
+  border-color: rgba(139, 92, 246, 0.2) transparent transparent;
+}
+
+/* AI Processing Circle Animations */
+.ai-circle-glow {
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+}
+
+@keyframes dataFlow {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.3;
+  }
+}
+
+.data-flow-circle {
+  stroke-dasharray: 100;
+  animation: dataFlow 3s linear infinite;
+}
