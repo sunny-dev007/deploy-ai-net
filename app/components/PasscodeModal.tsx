@@ -11,7 +11,7 @@ interface PasscodeModalProps {
 export default function PasscodeModal({ onAuthenticate }: PasscodeModalProps) {
   const [passcode, setPasscode] = useState(['', '', '', '']);
   const [passcodeError, setPasscodeError] = useState('');
-  const CORRECT_PASSCODE = '2606';
+  const CORRECT_PASSCODE = '2605';
 
   const handlePasscodeChange = (index: number, value: string) => {
     if (value.length <= 1) {
