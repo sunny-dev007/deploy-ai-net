@@ -24,6 +24,7 @@ import { SiGrammarly, SiOpenai } from 'react-icons/si';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import PasscodeModal from '../components/PasscodeModal';
 
 interface AnalysisResult {
   content: string;
@@ -199,6 +200,7 @@ export default function ContentCopilot() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+      {!isAuthenticated && <PasscodeModal onAuthenticate={handleAuthentication} />}
       <Nav />
       <main className="flex-grow pt-24">
         {/* Hero Section */}
