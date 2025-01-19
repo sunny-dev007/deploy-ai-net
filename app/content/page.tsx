@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
@@ -37,6 +38,8 @@ interface AnalysisResult {
 }
 
 export default function ContentCopilot() {
+  const { data: session, status } = useSession();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('write');
   const [url, setUrl] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -197,6 +200,18 @@ export default function ContentCopilot() {
       setIsLoading(false);
     }
   };
+
+  // Handle passcode authentication
+  const handleAuthentication = () => {
+    setIsAuthenticated(true);
+  };
+
+  // Check session on mount
+  useEffect(() => {
+    if (session) {
+      setIsAuthenticated(true);
+    }
+  }, [session]);
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">

@@ -1,0 +1,33 @@
+.json-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.json-container::-webkit-scrollbar-thumb {
+  background-color: #4a5568; /* Gray-700 */
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.json-container::-webkit-scrollbar-track {
+  background-color: #2d3748; /* Gray-800 */
+  border-radius: 4px;
+}
+
+.dark .json-container::-webkit-scrollbar-track {
+  background-color: #2d3748; /* Gray-800 */
+}
+
+.dark .json-container::-webkit-scrollbar-thumb {
+    background-color: #718096; /* Gray-600 */
+}
+
+.json-container {
+    scrollbar-width: thin;
+    scrollbar-color: #4a5568 #2d3748;
+}
+
+.dark .json-container {
+    scrollbar-color: #718096 #2d3748;
+} 

@@ -8,7 +8,7 @@ interface PasscodeModalProps {
   onAuthenticate: () => void;
 }
 
-export default function PasscodeModal({ onAuthenticate }: PasscodeModalProps) {
+const PasscodeModal: React.FC<PasscodeModalProps> = ({ onAuthenticate }) => {
   const [passcode, setPasscode] = useState(['', '', '', '']);
   const [passcodeError, setPasscodeError] = useState('');
   const CORRECT_PASSCODE = '2605';
@@ -125,4 +125,6 @@ export default function PasscodeModal({ onAuthenticate }: PasscodeModalProps) {
       </motion.div>
     </div>
   );
-} 
+};
+
+export default PasscodeModal; 

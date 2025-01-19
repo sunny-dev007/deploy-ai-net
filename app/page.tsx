@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaRobot, FaImage, FaKeyboard, FaBrain, FaChevronDown, FaChevronUp, FaPencilAlt, FaCode, FaCheck, FaArrowRight, FaCogs, FaFileAlt, FaChartLine, FaCloud, FaUser, FaEnvelope, FaBug, FaMagic, FaLock, FaBullhorn, FaSearchDollar, FaLanguage } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
@@ -92,6 +92,35 @@ function FeatureCard({ tool }: { tool: typeof aiTools[0] }) {
 }
 
 export default function Home() {
+  // State for hero section floating elements
+  const [heroElements, setHeroElements] = useState<any[]>([]);
+  // State for copilot section floating elements
+  const [copilotParticles, setCopilotParticles] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Generate random values for hero section floating elements
+    const initialHeroElements = [...Array(20)].map(() => ({
+      width: Math.random() * 10 + 5,
+      height: Math.random() * 10 + 5,
+      background: `rgba(${Math.random() * 255}, ${Math.random() * 255}, 255, 0.3)`,
+      left: Math.random() * 100 + '%',
+      top: Math.random() * 100 + '%',
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 2,
+    }));
+    setHeroElements(initialHeroElements);
+
+    // Generate random values for copilot section floating particles
+    const initialCopilotParticles = [...Array(30)].map(() => ({
+      width: Math.random() * 4 + 2,
+      height: Math.random() * 4 + 2,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      duration: Math.random() * 3 + 2,
+    }));
+    setCopilotParticles(initialCopilotParticles);
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
@@ -103,25 +132,25 @@ export default function Home() {
             <div className="absolute inset-0 bg-[url('/neural-pattern.svg')] bg-center opacity-10" />
             <div className="absolute inset-0">
               {/* Add floating elements */}
-              {[...Array(20)].map((_, i) => (
+              {heroElements.map((element, i) => (
                 <motion.div
                   key={i}
                   className="absolute rounded-full"
                   style={{
-                    width: Math.random() * 10 + 5 + 'px',
-                    height: Math.random() * 10 + 5 + 'px',
-                    background: `rgba(${Math.random() * 255}, ${Math.random() * 255}, 255, 0.3)`,
-                    left: Math.random() * 100 + '%',
-                    top: Math.random() * 100 + '%',
+                    width: element.width + 'px',
+                    height: element.height + 'px',
+                    background: element.background,
+                    left: element.left,
+                    top: element.top,
                   }}
                   animate={{
                     y: [0, -30, 0],
                     opacity: [0.5, 1, 0.5],
                   }}
                   transition={{
-                    duration: Math.random() * 3 + 2,
+                    duration: element.duration,
                     repeat: Infinity,
-                    delay: Math.random() * 2,
+                    delay: element.delay,
                   }}
                 />
               ))}
@@ -242,22 +271,22 @@ export default function Home() {
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[url('/neural-pattern.svg')] opacity-5" />
             {/* Animated particles */}
-            {[...Array(30)].map((_, i) => (
+            {copilotParticles.map((particle, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full bg-white/10"
                 style={{
-                  width: Math.random() * 4 + 2 + 'px',
-                  height: Math.random() * 4 + 2 + 'px',
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
+                  width: particle.width + 'px',
+                  height: particle.height + 'px',
+                  left: particle.left,
+                  top: particle.top,
                 }}
                 animate={{
                   y: [0, -30, 0],
                   opacity: [0.2, 0.5, 0.2],
                 }}
                 transition={{
-                  duration: Math.random() * 3 + 2,
+                  duration: particle.duration,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}

@@ -16,6 +16,7 @@ const nextConfig = {
       }
       return config
     },
+    serverActions: true
   },
   // Turbopack configuration
   turbo: {
@@ -42,7 +43,10 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ['localhost'],
+    domains: [
+      'lh3.googleusercontent.com',  // For Google profile images
+      'avatars.githubusercontent.com'  // For GitHub profile images (if you're using GitHub auth)
+    ],
   },
   // Webpack configuration (will be used when Turbopack is not available)
   webpack: (config, { dev, isServer }) => {
