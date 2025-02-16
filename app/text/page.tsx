@@ -14,6 +14,13 @@ import PasscodeModal from '../components/PasscodeModal';
 
 type Mode = 'write' | 'improve' | 'translate' | 'code' | 'summarize' | 'analyze';
 
+type CodeProps = {
+  node?: any;
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+};
+
 const modes = [
   {
     id: 'write',
@@ -270,23 +277,24 @@ export default function TextAssistant() {
                             ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-4" {...props} />,
                             ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-4" {...props} />,
                             li: ({node, ...props}) => <li className="mb-2" {...props} />,
-                            code: ({node, inline, className, children, ...props}) => {
+                            code: ({ className, children, ...props }: CodeProps) => {
                               const match = /language-(\w+)/.exec(className || '');
-                              return !inline && match ? (
+                              const isInline = !match;
+                              
+                              return !isInline ? (
                                 <SyntaxHighlighter
-                                  language={match[1]}
-                                  style={atomDark}
-                                  PreTag="div"
-                                  className="rounded-lg my-4"
                                   {...props}
+                                  style={atomDark}
+                                  language={match?.[1] || 'text'}
+                                  PreTag="div"
                                 >
                                   {String(children).replace(/\n$/, '')}
                                 </SyntaxHighlighter>
                               ) : (
-                                <code className="bg-gray-100 dark:bg-gray-800 rounded px-1" {...props}>
+                                <code className={className} {...props}>
                                   {children}
                                 </code>
-                              )
+                              );
                             },
                           }}
                         >

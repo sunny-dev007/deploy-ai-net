@@ -433,11 +433,11 @@ export default function ContentCopilot() {
                           blockquote: ({node, ...props}) => (
                             <blockquote className="border-l-4 border-purple-500 pl-4 my-4 text-gray-400 italic" {...props} />
                           ),
-                          code: ({node, inline, className, children, ...props}) => {
+                          code: ({ className, children, ...props }: any) => {
                             const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
+                            return match ? (
                               <SyntaxHighlighter
-                                language={match[1]}
+                                language={match[1] as any}
                                 style={atomDark}
                                 className="rounded-lg !bg-gray-800/50"
                                 {...props}

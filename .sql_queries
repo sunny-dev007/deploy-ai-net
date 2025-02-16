@@ -1,0 +1,42 @@
+-- Create enum for file status
+CREATE TYPE file_status AS ENUM ('pending', 'ingested', 'failed');
+
+-- Create table for file ingestion records
+CREATE TABLE file_ingestions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    file_id TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_size BIGINT NOT NULL,
+    status file_status DEFAULT 'pending',
+    vector_count INTEGER,
+    chunk_count INTEGER,
+    ingestion_date TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    error_message TEXT,
+    metadata JSONB,
+    pinecone_namespace TEXT,
+    is_archived BOOLEAN DEFAULT FALSE,
+    UNIQUE(user_id, file_id)
+);
+
+-- Create index for faster queries
+CREATE INDEX idx_file_ingestions_user_id ON file_ingestions(user_id);
+CREATE INDEX idx_file_ingestions_status ON file_ingestions(status);
+
+-- Create function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create trigger for updated_at
+CREATE TRIGGER update_file_ingestions_updated_at
+    BEFORE UPDATE ON file_ingestions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
