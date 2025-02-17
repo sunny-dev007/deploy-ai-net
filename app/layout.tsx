@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   verification: {
-    google: '<meta name="google-site-verification" content="472WXoae6vgNMFVTmbO_LKtkZoj4ALcYF-psiXviVjY" />', // Replace with your actual verification code from Google Search Console
+    google: '472WXoae6vgNMFVTmbO_LKtkZoj4ALcYF-psiXviVjY',
   },
   openGraph: {
     title: 'AI Studio - Intelligent Document Processing',
