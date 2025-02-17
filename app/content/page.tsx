@@ -181,7 +181,7 @@ export default function ContentCopilot() {
           toolResult = await checkGrammar(result) ?? '';
           break;
         case 'SEO Optimizer':
-          toolResult = await optimizeSEO(result, targetKeywords) ?? '';
+          toolResult = await optimizeSEO(result) ?? '';
           break;
         case 'Translator':
           toolResult = await translateContent(result, targetLanguage) ?? '';
