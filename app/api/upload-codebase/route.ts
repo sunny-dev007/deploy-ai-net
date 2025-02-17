@@ -4,13 +4,14 @@ import { getToken } from 'next-auth/jwt';
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { Pinecone } from '@pinecone-database/pinecone';
 import { supabase } from '@/lib/supabase';
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Readable } from 'stream';
 
 const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!
+  apiKey: process.env.PINECONE_API_KEY!,
+  environment: 'gcp-starter'
 });
 
 const embeddings = new OpenAIEmbeddings({

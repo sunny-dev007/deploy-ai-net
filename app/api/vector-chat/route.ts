@@ -1,36 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { Pinecone } from '@pinecone-database/pinecone';
 
-const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!,
-});
-
+// Initialize embeddings
 const embeddings = new OpenAIEmbeddings({
   azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
   azureOpenAIBasePath: process.env.AZURE_OPENAI_EMBEDDING_ENDPOINT,
   azureOpenAIApiDeploymentName: "text-embedding-3-small",
 });
 
+// Pinecone API configuration
+const INDEX_NAME = "ai-agent-docs";
+const PINECONE_BASE_URL = `https://ai-agent-docs-hc181fg.svc.aped-4627-b74a.pinecone.io`;
+
 export async function POST(req: NextRequest) {
   try {
+    console.log('Starting vector chat processing...');
     const { message, messages } = await req.json();
 
     // Get embeddings for the user's question
+    console.log('Generating embeddings...');
     const queryEmbedding = await embeddings.embedQuery(message);
 
-    // Query Pinecone
-    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-    const queryResponse = await index.query({ 
-      vector: queryEmbedding,
-      topK: 10,
-      includeMetadata: true
+    // Add error handling for empty or invalid embeddings
+    if (!queryEmbedding || queryEmbedding.length === 0) {
+      throw new Error('Failed to generate embeddings for the query');
+    }
+
+    // Log configuration for debugging
+    console.log('Pinecone Configuration:', {
+      indexName: INDEX_NAME,
+      baseUrl: PINECONE_BASE_URL,
+      apiKeyLength: process.env.PINECONE_API_KEY?.length,
+      vectorDimension: queryEmbedding.length
     });
+    
+    // Query Pinecone using fetch with updated headers
+    const pineconeResponse = await fetch(`${PINECONE_BASE_URL}/query`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': process.env.PINECONE_API_KEY!,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        vector: queryEmbedding,
+        topK: 10,
+        includeMetadata: true,
+        includeValues: false,
+        filter: {}
+      }),
+    });
+
+    if (!pineconeResponse.ok) {
+      const errorText = await pineconeResponse.text();
+      console.error('Pinecone error details:', {
+        status: pineconeResponse.status,
+        statusText: pineconeResponse.statusText,
+        error: errorText,
+        headers: Object.fromEntries(pineconeResponse.headers.entries()),
+        url: `${PINECONE_BASE_URL}/query`
+      });
+      throw new Error(`Pinecone query failed: ${pineconeResponse.statusText} (${pineconeResponse.status})`);
+    }
+
+    const queryResponse = await pineconeResponse.json();
+    
+    console.log('Pinecone query completed successfully');
 
     // Extract relevant context from the matches
     const context = queryResponse.matches?.length 
       ? queryResponse.matches
-          .map(match => (match.metadata as { text: string })?.text)
+          .map((match: any) => match.metadata?.text)
           .filter(Boolean)
           .join('\n\n')
       : '';

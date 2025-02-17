@@ -696,88 +696,148 @@ const Dashboard: React.FC = () => {
 
   // Update the fetchDashboardStats function to ensure accurate counts
   const fetchDashboardStats = useCallback(async () => {
-    if (!session?.user?.email) return;
+    if (!session?.user?.email) {
+      console.log('No user email found in session');
+      return;
+    }
 
     try {
-      // Fetch all non-deleted files
-      const { data: activeFiles, error } = await supabase
+      // First check if the table exists and we have access
+      const { data: tableInfo, error: tableError } = await supabase
+        .from('file_ingestions')
+        .select('count')
+        .limit(1);
+
+      if (tableError) {
+        console.error('Error accessing file_ingestions table:', tableError);
+        return;
+      }
+
+      // Fetch all non-deleted files with error handling
+      const { data: activeFiles, error: filesError } = await supabase
         .from('file_ingestions')
         .select('*')
         .eq('email_id', session.user.email)
         .is('deleted_at', null);
 
-      if (error) throw error;
+      if (filesError) {
+        console.error('Error fetching files:', filesError);
+        return;
+      }
 
-      if (activeFiles) {
-        // Create initial stats object with accurate file count
-        const initialStats = {
-          storageUsed: 0,
-          totalFiles: activeFiles.length, // Set correct total files
-          recentUploads: 0,
-          totalVectors: 0,
-          averageChunkSize: 0,
-          processingFiles: 0,
-          fileTypeDistribution: {},
-          ingestionSuccess: { successful: 0, failed: 0, pending: 0 },
-          embeddingStats: { minMagnitude: Infinity, maxMagnitude: 0, averageMagnitude: 0 },
-          chunkStats: { minSize: Infinity, maxSize: 0, optimalChunks: 0 },
-          processingTimes: []
-        };
+      if (!activeFiles) {
+        console.log('No active files found');
+        return;
+      }
 
-        // Calculate stats from active files
-        const stats = activeFiles.reduce((acc, file) => {
-          // Update file type distribution first
-          const fileType = file.file_type?.toLowerCase() || 'unknown';
+      // Create initial stats object with accurate file count
+      const initialStats: DashboardStats = {
+        storageUsed: 0,
+        totalFiles: activeFiles.length,
+        recentUploads: 0,
+        totalVectors: 0,
+        averageChunkSize: 0,
+        processingFiles: 0,
+        averageEmbeddingDimension: 0,
+        vectorDensity: 0,
+        processingTimes: [],
+        fileTypeDistribution: {},
+        embeddingStats: { minMagnitude: Infinity, maxMagnitude: 0, averageMagnitude: 0 },
+        chunkStats: { minSize: Infinity, maxSize: 0, optimalChunks: 0 },
+        ingestionSuccess: { successful: 0, failed: 0, pending: 0 },
+        vectorQuality: { density: 0, efficiency: 0, dimensions: 0 },
+        contentMetrics: { textDensity: 0, averageDocumentSize: 0, processingEfficiency: 0 },
+        timeMetrics: { averageProcessingTime: 0, fastestProcessing: 0, slowestProcessing: 0 }
+      };
+
+      // Calculate stats from active files with type safety
+      const stats = activeFiles.reduce((acc, file) => {
+        try {
+          // Update file type distribution
+          const fileType = (file.file_type?.toLowerCase() || 'unknown') as string;
           acc.fileTypeDistribution[fileType] = (acc.fileTypeDistribution[fileType] || 0) + 1;
 
+          // Safely access nested properties
+          const fileSize = typeof file.file_size === 'number' ? file.file_size : 0;
+          const vectorCount = typeof file.vector_count === 'number' ? file.vector_count : 0;
+          const avgChunkSize = file.metadata?.averageChunkSize || 0;
+          const processingTime = file.metadata?.processingTime || 0;
+
+          // Update accumulator with safe values
           return {
             ...acc,
-            storageUsed: acc.storageUsed + (file.file_size || 0),
+            storageUsed: acc.storageUsed + fileSize,
             recentUploads: acc.recentUploads + (
               new Date(file.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 ? 1 : 0
             ),
-            totalVectors: acc.totalVectors + (file.vector_count || 0),
-            averageChunkSize: acc.averageChunkSize + (file.metadata?.averageChunkSize || 0),
+            totalVectors: acc.totalVectors + vectorCount,
+            averageChunkSize: acc.averageChunkSize + avgChunkSize,
             processingFiles: acc.processingFiles + (file.status === 'pending' ? 1 : 0),
             ingestionSuccess: {
               successful: acc.ingestionSuccess.successful + (file.status === 'ingested' ? 1 : 0),
               failed: acc.ingestionSuccess.failed + (file.status === 'failed' ? 1 : 0),
               pending: acc.ingestionSuccess.pending + (file.status === 'pending' ? 1 : 0)
             },
-            processingTimes: [...acc.processingTimes, file.metadata?.processingTime || 0].filter(Boolean)
+            processingTimes: processingTime > 0 ? [...acc.processingTimes, processingTime] : acc.processingTimes
           };
-        }, initialStats);
+        } catch (err) {
+          console.error('Error processing file stats:', err, file);
+          return acc;
+        }
+      }, initialStats);
 
-        // Calculate averages and other derived metrics
-        const vectorQuality = {
-          density: stats.totalVectors / (stats.storageUsed / 1024 || 1), // vectors per KB
-          efficiency: stats.totalVectors / (stats.totalFiles || 1),
-          dimensions: 1536 // Standard for text-embedding-3-small
-        };
+      // Calculate derived metrics with safe math operations
+      const totalKB = Math.max(stats.storageUsed / 1024, 1);
+      const safeFileCount = Math.max(stats.totalFiles, 1);
 
-        const contentMetrics = {
-          textDensity: stats.averageChunkSize / (stats.totalFiles || 1),
-          averageDocumentSize: stats.storageUsed / (stats.totalFiles || 1),
-          processingEfficiency: stats.totalVectors / (stats.totalFiles || 1)
-        };
+      const vectorQuality = {
+        density: stats.totalVectors / totalKB,
+        efficiency: stats.totalVectors / safeFileCount,
+        dimensions: 1536 // Standard for text-embedding-3-small
+      };
 
-        const timeMetrics = {
-          averageProcessingTime: stats.processingTimes.length ? 
-            stats.processingTimes.reduce((a: number, b: number) => a + b, 0) / stats.processingTimes.length : 
-            0,
-          fastestProcessing: stats.processingTimes.length ? Math.min(...stats.processingTimes) : 0,
-          slowestProcessing: stats.processingTimes.length ? Math.max(...stats.processingTimes) : 0
-        };
+      const contentMetrics = {
+        textDensity: stats.averageChunkSize / safeFileCount,
+        averageDocumentSize: stats.storageUsed / safeFileCount,
+        processingEfficiency: stats.totalVectors / safeFileCount
+      };
 
-        setDashboardStats({
-          ...stats,
-          vectorQuality,
-          contentMetrics,
-          timeMetrics
-        });
-      }
+      const timeMetrics = {
+        averageProcessingTime: stats.processingTimes.length ? 
+          stats.processingTimes.reduce((a: number, b: number) => a + b, 0) / stats.processingTimes.length : 
+          0,
+        fastestProcessing: stats.processingTimes.length ? Math.min(...stats.processingTimes) : 0,
+        slowestProcessing: stats.processingTimes.length ? Math.max(...stats.processingTimes) : 0
+      };
+
+      setDashboardStats({
+        ...stats,
+        vectorQuality,
+        contentMetrics,
+        timeMetrics
+      });
+
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+      // Set default stats in case of error
+      setDashboardStats({
+        storageUsed: 0,
+        totalFiles: 0,
+        recentUploads: 0,
+        totalVectors: 0,
+        averageChunkSize: 0,
+        processingFiles: 0,
+        averageEmbeddingDimension: 0,
+        vectorDensity: 0,
+        processingTimes: [],
+        fileTypeDistribution: {},
+        embeddingStats: { minMagnitude: 0, maxMagnitude: 0, averageMagnitude: 0 },
+        chunkStats: { minSize: 0, maxSize: 0, optimalChunks: 0 },
+        ingestionSuccess: { successful: 0, failed: 0, pending: 0 },
+        vectorQuality: { density: 0, efficiency: 0, dimensions: 1536 },
+        contentMetrics: { textDensity: 0, averageDocumentSize: 0, processingEfficiency: 0 },
+        timeMetrics: { averageProcessingTime: 0, fastestProcessing: 0, slowestProcessing: 0 }
+      });
     }
   }, [session?.user?.email]);
 

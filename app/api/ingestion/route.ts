@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getToken } from 'next-auth/jwt';
-import { Pinecone } from '@pinecone-database/pinecone';
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { OpenAIEmbeddings } from "@langchain/openai";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { supabase } from '@/lib/supabase';
 
-const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!
-});
+// Pinecone API configuration
+const INDEX_NAME = "ai-agent-docs";
+const PINECONE_BASE_URL = `https://ai-agent-docs-hc181fg.svc.aped-4627-b74a.pinecone.io`;
 
 // Initialize Azure OpenAI embeddings
 const embeddings = new OpenAIEmbeddings({
@@ -155,9 +154,6 @@ export async function POST(req: NextRequest) {
     const maxChunks = 100;
     const limitedChunks = chunks.slice(0, maxChunks);
 
-    // Initialize Pinecone index
-    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-
     // Create embeddings using Azure OpenAI with cleaned text
     const processingStartTime = Date.now();
     const vectors = await Promise.all(
@@ -210,9 +206,31 @@ export async function POST(req: NextRequest) {
 
     const processingTime = (Date.now() - processingStartTime) / 1000; // Convert to seconds
 
-    // Upsert to Pinecone
+    // Upsert to Pinecone using fetch
     if (validVectors.length > 0) {
-      await index.upsert(validVectors);
+      const pineconeResponse = await fetch(`${PINECONE_BASE_URL}/vectors/upsert`, {
+        method: 'POST',
+        headers: {
+          'Api-Key': process.env.PINECONE_API_KEY!,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          vectors: validVectors,
+          namespace: ''
+        }),
+      });
+
+      if (!pineconeResponse.ok) {
+        const errorText = await pineconeResponse.text();
+        console.error('Pinecone error details:', {
+          status: pineconeResponse.status,
+          statusText: pineconeResponse.statusText,
+          error: errorText,
+          headers: Object.fromEntries(pineconeResponse.headers.entries()),
+          url: `${PINECONE_BASE_URL}/vectors/upsert`
+        });
+        throw new Error(`Pinecone upsert failed: ${pineconeResponse.statusText} (${pineconeResponse.status})`);
+      }
     }
 
     // Update ingestion record with detailed metrics
