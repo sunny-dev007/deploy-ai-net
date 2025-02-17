@@ -1,45 +1,50 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-export const runtime = 'edge'; // Use edge runtime for better performance
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
     const { message, history, isAdvanced } = await req.json();
 
-    // Convert history to OpenAI format
+    // Convert history to Azure OpenAI format
     const formattedHistory = history.map((msg: any) => ({
       role: msg.role,
       content: msg.content
     }));
 
-    // Select model based on mode
-    const model = isAdvanced ? "gpt-4" : "gpt-3.5-turbo";
+    // System message for comprehensive responses
+    const systemMessage = "You are a highly detailed AI assistant. Provide comprehensive, well-explained responses with examples when appropriate.";
 
-    // System message based on mode
-    const systemMessage = isAdvanced
-      ? "You are a highly detailed AI assistant. Provide comprehensive, well-explained responses with examples when appropriate."
-      : "You are a helpful AI assistant. Provide clear and concise responses.";
-
-    const completion = await openai.chat.completions.create({
-      model: model,
-      messages: [
-        { role: "system", content: systemMessage },
-        ...formattedHistory,
-        { role: "user", content: message }
-      ],
-      temperature: isAdvanced ? 0.7 : 0.5,
-      max_tokens: isAdvanced ? 2000 : 1000,
-      stream: false,
+    // Call Azure OpenAI API
+    const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT!, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.AZURE_OPENAI_API_KEY!,
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: systemMessage },
+          ...formattedHistory,
+          { role: "user", content: message }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        top_p: 0.95,
+        stop: null
+      }),
     });
 
-    const response = completion.choices[0]?.message?.content || "I apologize, but I couldn't generate a response.";
+    if (!response.ok) {
+      throw new Error('Failed to get response from Azure OpenAI');
+    }
 
-    return NextResponse.json({ response }, { status: 200 });
+    const data = await response.json();
+    const assistantMessage = data.choices[0].message.content;
+
+    return NextResponse.json({ response: assistantMessage }, { status: 200 });
 
   } catch (error: any) {
     console.error('Chat API Error:', error);

@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
@@ -64,19 +61,35 @@ export async function POST(req: Request) {
         throw new Error('Invalid mode selected');
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
+    // Call Azure OpenAI API
+    const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT!, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.AZURE_OPENAI_API_KEY!,
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        top_p: 0.95,
+        stop: null
+      }),
     });
 
-    return NextResponse.json({ 
-      result: completion.choices[0].message.content 
-    });
+    if (!response.ok) {
+      throw new Error('Failed to get response from Azure OpenAI');
+    }
+
+    const data = await response.json();
+    const result = data.choices[0].message.content;
+
+    return NextResponse.json({ result });
   } catch (error: any) {
     console.error('Error processing code:', error);
     return NextResponse.json(

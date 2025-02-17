@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
-import { generateContent, analyzeUrl, improveContent, extractMetadata, checkGrammar, optimizeSEO, translateContent, analyzeContent } from '../services/openai';
+import { generateContent, analyzeUrl, improveContent, extractMetadata, checkGrammar, optimizeSEO, translateContent, analyzeContent } from '../services/content';
 import { 
   FaPencilAlt, 
   FaMagic, 
