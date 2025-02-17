@@ -1,15 +1,14 @@
 import { getServerSession } from "next-auth/next";
-import Dashboard from "../components/Dashboard";
-import VectorChatBot from "../components/VectorChatBot";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
+import CodeAnalyzer from "../components/CodeAnalyzer";
 
 export const metadata: Metadata = {
-  title: "Dashboard - AI Studio",
-  description: "Manage your files and uploads",
+  title: "Code Analyzer - AI Studio",
+  description: "Analyze your codebase with AI-powered tools",
 };
 
-export default async function DashboardPage() {
+export default async function AnalyzePage() {
   const session = await getServerSession();
 
   if (!session) {
@@ -18,8 +17,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-100">
-      <Dashboard />
-      <VectorChatBot />
+      <CodeAnalyzer />
     </main>
   );
 } 
