@@ -12,6 +12,52 @@ const embeddings = new OpenAIEmbeddings({
 const INDEX_NAME = "ai-agent-docs";
 const PINECONE_BASE_URL = `https://ai-agent-docs-hc181fg.svc.aped-4627-b74a.pinecone.io`;
 
+// Add retry mechanism with exponential backoff
+async function callAzureOpenAIWithRetry(messages: any[], maxRetries = 3, initialDelay = 8000) {
+  let attempt = 0;
+  
+  while (attempt < maxRetries) {
+    try {
+      const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': process.env.AZURE_OPENAI_API_KEY!,
+        },
+        body: JSON.stringify({
+          messages,
+          max_tokens: 2500,
+          temperature: 0.0,
+          frequency_penalty: 0,
+          presence_penalty: 0,
+          top_p: 0.95,
+          stop: null
+        }),
+      });
+
+      // If not rate limited, return the response
+      if (response.status !== 429) {
+        if (!response.ok) {
+          throw new Error(`Azure OpenAI Error: ${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+      }
+
+      // If rate limited, wait with exponential backoff
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.log(`Rate limited. Retrying in ${delay}ms... (Attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      attempt++;
+      
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error;
+      attempt++;
+    }
+  }
+
+  throw new Error('Max retries reached for Azure OpenAI API');
+}
+
 export async function POST(req: NextRequest) {
   try {
     console.log('Starting vector chat processing...');
@@ -63,7 +109,6 @@ export async function POST(req: NextRequest) {
     }
 
     const queryResponse = await pineconeResponse.json();
-    
     console.log('Pinecone query completed successfully');
 
     // Extract relevant context from the matches
@@ -91,40 +136,26 @@ export async function POST(req: NextRequest) {
       If the context is insufficient, clearly state that a detailed response cannot be provided due to limited information.
     `;
 
-    // Call Azure OpenAI API
-    const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT!, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': process.env.AZURE_OPENAI_API_KEY!,
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: systemMessage },
-          ...messages,
-          { role: 'user', content: message }
-        ],
-        max_tokens: 2500,
-        temperature: 0.5,
-        frequency_penalty: 0,
-        presence_penalty: 0,
-        top_p: 0.95,
-        stop: null
-      }),
-    });
+    // Call Azure OpenAI API with retry mechanism
+    try {
+      const data = await callAzureOpenAIWithRetry([
+        { role: 'system', content: systemMessage },
+        ...messages,
+        { role: 'user', content: message }
+      ]);
 
-    if (!response.ok) {
-      throw new Error('Failed to get response from Azure OpenAI');
+      const assistantMessage = data.choices[0].message.content;
+      return NextResponse.json({ message: assistantMessage });
+    } catch (error) {
+      console.error('Azure OpenAI error with retries:', error);
+      throw error;
     }
 
-    const data = await response.json();
-    const assistantMessage = data.choices[0].message.content;
-
-    return NextResponse.json({ message: assistantMessage });
   } catch (error) {
     console.error('Chat error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: 'Failed to process chat message' },
+      { error: `Failed to process chat message: ${errorMessage}` },
       { status: 500 }
     );
   }
