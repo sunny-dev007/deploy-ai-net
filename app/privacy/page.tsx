@@ -55,8 +55,7 @@ const PrivacyPolicy = () => {
               <h2 className="text-2xl font-semibold text-gray-800 mb-4">4. Data Storage and Security</h2>
               <p className="text-gray-600">
                 We use industry-standard security measures to protect your data. Your data is stored 
-                securely using encryption, and we utilize Pinecone for vector storage and Supabase 
-                for database management. All data processing is performed in compliance with applicable 
+                securely using encryption, and we utilize Pinecone for vector storage. All data processing is performed in compliance with applicable 
                 data protection laws.
               </p>
             </section>
@@ -68,7 +67,6 @@ const PrivacyPolicy = () => {
                 <li>Google OAuth for authentication</li>
                 <li>Azure OpenAI for AI processing</li>
                 <li>Pinecone for vector database storage</li>
-                <li>Supabase for database management</li>
                 <li>Google Drive for file storage</li>
               </ul>
             </section>

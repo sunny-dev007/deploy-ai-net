@@ -12,7 +12,6 @@ import LoadingDots from '../components/LoadingDots';
 import ModelSwitch from '../components/ModelSwitch';
 import AILoader from '../components/AILoader';
 import PasscodeModal from '../components/PasscodeModal';
-import { createClient } from '@supabase/supabase-js';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -63,21 +62,6 @@ const dummyConversations = [
   },
   // Add more dummy conversations as needed
 ];
-
-// Initialize Supabase client with error handling
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
 
 export default function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -173,79 +157,41 @@ export default function ChatBot() {
     return () => clearTimeout(timer);
   }, [messages, scrollToBottom, isStreaming]);
 
-  // Function to create a new conversation with improved error handling
   const createNewConversation = async () => {
     try {
-      // First ensure we have a session
-      const session = await supabase.auth.getSession();
-      const userId = session?.data?.session?.user?.id || 'anonymous';
-
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert([
-          { 
-            title: 'New Chat',
-            user_id: userId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ])
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Supabase error:', error.message);
-        throw error;
-      }
-
-      if (!data) {
-        throw new Error('No data returned from Supabase');
-      }
-
-      setCurrentConversationId(data.id);
-      return data.id;
+      // Create a dummy conversation ID for now
+      const dummyId = `dummy-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      setCurrentConversationId(dummyId);
+      console.log('Created dummy conversation ID:', dummyId);
+      return dummyId;
     } catch (error: any) {
       console.error('Error creating conversation:', {
         message: error.message,
         details: error.details,
         hint: error.hint
       });
+      toast.error('Failed to create new conversation');
       return null;
     }
   };
 
-  // Function to save message to database with improved error handling
   const saveMessage = async (message: Message, conversationId: string | null) => {
     try {
-      // Ensure we have a valid conversation ID
+      // If no conversation ID, create a dummy one
       if (!conversationId) {
-        const newConversationId = await createNewConversation();
-        if (!newConversationId) {
-          throw new Error('Failed to create new conversation for message');
+        conversationId = await createNewConversation();
+        if (!conversationId) {
+          throw new Error('Failed to create conversation ID');
         }
-        conversationId = newConversationId;
       }
-
-      const session = await supabase.auth.getSession();
-      const userId = session?.data?.session?.user?.id || 'anonymous';
-
-      const { error } = await supabase
-        .from('messages')
-        .insert([
-          {
-            conversation_id: conversationId,
-            role: message.role,
-            content: message.content,
-            created_at: message.timestamp.toISOString(),
-            user_id: userId
-          }
-        ]);
-
-      if (error) {
-        console.error('Supabase error:', error.message);
-        throw error;
-      }
-
+      
+      // Log the message saving for debugging
+      console.log('Message saved (in memory only):', {
+        conversation_id: conversationId,
+        role: message.role,
+        content: message.content.substring(0, 50) + '...',
+      });
+      
       return conversationId;
     } catch (error: any) {
       console.error('Error saving message:', {
@@ -257,25 +203,14 @@ export default function ChatBot() {
     }
   };
 
-  // Function to update conversation title with improved error handling
   const updateConversationTitle = async (id: string, title: string) => {
     try {
-      const session = await supabase.auth.getSession();
-      const userId = session?.data?.session?.user?.id || 'anonymous';
-
-      const { error } = await supabase
-        .from('conversations')
-        .update({ 
-          title, 
-          updated_at: new Date().toISOString(),
-          user_id: userId
-        })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Supabase error:', error.message);
-        throw error;
-      }
+      // Just log the title update for debugging
+      console.log('Conversation title updated (in memory only):', {
+        id,
+        title,
+        updated_at: new Date().toISOString()
+      });
     } catch (error: any) {
       console.error('Error updating conversation title:', {
         message: error.message,
@@ -522,21 +457,27 @@ export default function ChatBot() {
     }
   };
 
-  // Function to fetch conversations
   const fetchConversations = async () => {
     try {
       setIsLoadingConversations(true);
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        return;
-      }
-
-      setConversations(data || []);
+      // Use dummy conversations instead
+      setConversations([
+        {
+          id: 'dummy-1',
+          title: 'Previous Conversation 1',
+          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          user_id: 'anonymous'
+        },
+        {
+          id: 'dummy-2',
+          title: 'Previous Conversation 2',
+          created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
+          user_id: 'anonymous'
+        }
+      ]);
+      console.log('Using dummy conversations (database disabled)');
     } catch (error) {
       console.error('Error fetching conversations:', error);
     } finally {
@@ -544,29 +485,49 @@ export default function ChatBot() {
     }
   };
 
-  // Function to fetch messages for a conversation
   const fetchMessages = async (conversationId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return;
+      // For dummy conversations, just set some sample messages
+      if (conversationId === 'dummy-1') {
+        setMessages([
+          {
+            id: 'dummy-msg-1',
+            role: 'user',
+            content: 'Hello, how are you?',
+            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          },
+          {
+            id: 'dummy-msg-2',
+            role: 'assistant',
+            content: 'I\'m doing well, thank you for asking! How can I assist you today?',
+            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000 + 1000)
+          }
+        ]);
+      } else if (conversationId === 'dummy-2') {
+        setMessages([
+          {
+            id: 'dummy-msg-3',
+            role: 'user',
+            content: 'What can you help me with?',
+            timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000)
+          },
+          {
+            id: 'dummy-msg-4',
+            role: 'assistant',
+            content: 'I can assist with various tasks including answering questions, providing information, helping with creative writing, explaining concepts, and much more!',
+            timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000 + 1000)
+          }
+        ]);
+      } else {
+        // For new conversations, just show welcome message
+        setMessages([{
+          id: 'welcome',
+          role: 'assistant',
+          content: "Hello! I'm your AI assistant. I can help you with various tasks including writing, analysis, coding, and more. How can I assist you today?",
+          timestamp: new Date()
+        }]);
       }
-
-      if (data) {
-        const formattedMessages: Message[] = data.map(msg => ({
-          id: msg.id,
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-          timestamp: new Date(msg.created_at)
-        }));
-        setMessages(formattedMessages);
-      }
+      console.log('Using dummy messages for conversation (database disabled)');
     } catch (error) {
       console.error('Error fetching messages:', error);
     }

@@ -3,11 +3,33 @@ import { google } from 'googleapis';
 import { getToken } from 'next-auth/jwt';
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { Pinecone } from '@pinecone-database/pinecone';
-import { supabase } from '@/lib/supabase';
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Readable } from 'stream';
+
+// In-memory storage for file ingestions
+interface FileIngestion {
+  id: string;
+  user_id: string;
+  email_id: string | null | undefined;
+  file_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  status: 'pending' | 'processing' | 'ingested' | 'failed';
+  vector_count: number;
+  chunk_count: number;
+  created_at: string;
+  updated_at: string;
+  ingestion_date?: string;
+  error_message?: string;
+  metadata?: any;
+  deleted_at?: string | null;
+}
+
+// In-memory database
+const fileIngestions = new Map<string, FileIngestion>();
 
 const pinecone = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY!,
@@ -60,6 +82,11 @@ function bufferToStream(buffer: Buffer) {
   return readable;
 }
 
+// Helper function to generate a unique ID
+function generateId(): string {
+  return `ing_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -104,35 +131,33 @@ export async function POST(req: NextRequest) {
     
     const uploadResults = await Promise.all(
       files.map(async (file) => {
-        let initialFileData;
+        // Initialize with a defined value to satisfy type checking
+        const initialFileData: FileIngestion = {
+          id: generateId(),
+          user_id: token.sub ?? 'anonymous',
+          email_id: token.email,
+          file_name: file.name,
+          file_type: file.name.split('.').pop() || 'unknown',
+          status: 'pending',
+          file_id: 'temp-' + Date.now().toString(),
+          file_size: 0,
+          vector_count: 0,
+          chunk_count: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          metadata: {}
+        };
+        
         try {
           // Convert file to buffer first to get the size
           const buffer = Buffer.from(await file.arrayBuffer());
           
-          // First create the Supabase record with pending status
-          const { data, error: initialFileError } = await supabase
-            .from('file_ingestions')
-            .insert({
-              user_id: token.sub,
-              email_id: token.email,
-              file_name: file.name,
-              file_type: file.name.split('.').pop(),
-              status: 'pending',
-              file_id: 'temp-' + Date.now(), // Temporary file_id
-              file_size: buffer.length, // Add file size
-              vector_count: 0,
-              chunk_count: 0,
-              metadata: {}, // Initialize empty metadata
-            })
-            .select()
-            .single();
-
-          if (initialFileError) {
-            console.error('Error creating initial record:', initialFileError);
-            throw initialFileError;
-          }
+          // Update file size
+          initialFileData.file_size = buffer.length;
           
-          initialFileData = data;
+          // Store in memory
+          fileIngestions.set(initialFileData.id, initialFileData);
+          console.log('Created in-memory ingestion record:', initialFileData.id);
           
           // Create a readable stream from the buffer
           const fileStream = bufferToStream(buffer);
@@ -154,15 +179,11 @@ export async function POST(req: NextRequest) {
             throw new Error('Failed to upload to Google Drive');
           }
 
-          // Update the file_id immediately after successful upload
-          await supabase
-            .from('file_ingestions')
-            .update({
-              file_id: driveResponse.data.id,
-              file_size: buffer.length,
-              status: 'processing',
-            })
-            .eq('id', initialFileData.id);
+          // Update the file_id
+          initialFileData.file_id = driveResponse.data.id;
+          initialFileData.status = 'processing';
+          initialFileData.updated_at = new Date().toISOString();
+          fileIngestions.set(initialFileData.id, initialFileData);
 
           // Process and vectorize the content
           let documents: Document[] = [];
@@ -254,34 +275,31 @@ export async function POST(req: NextRequest) {
             await index.upsert(validVectors);
           }
 
-          // Update file metadata in Supabase with final status
-          await supabase
-            .from('file_ingestions')
-            .update({
-              status: 'ingested',
-              vector_count: validVectors.length,
-              chunk_count: chunks.length,
-              ingestion_date: new Date().toISOString(),
-              metadata: {
-                documentCount: documents.length,
-                averageChunkSize: chunkStats.totalSize / chunkStats.count,
-                embeddingStats,
-                chunkStats: {
-                  minSize: chunkStats.minSize,
-                  maxSize: chunkStats.maxSize,
-                  optimalChunks: chunks.length,
-                  averageSize: chunkStats.totalSize / chunkStats.count
-                },
-                processingTime,
-                vectorDimensions: embeddingStats.dimensions,
-                vectorDensity: validVectors.length / (chunkStats.totalSize / 1000), // vectors per KB
-                contentQuality: {
-                  textDensity: chunkStats.totalSize / documents.length,
-                  vectorEfficiency: validVectors.length / chunks.length
-                }
-              }
-            })
-            .eq('id', initialFileData.id);
+          // Update file metadata with final status
+          initialFileData.status = 'ingested';
+          initialFileData.vector_count = validVectors.length;
+          initialFileData.chunk_count = chunks.length;
+          initialFileData.ingestion_date = new Date().toISOString();
+          initialFileData.updated_at = new Date().toISOString();
+          initialFileData.metadata = {
+            documentCount: documents.length,
+            averageChunkSize: chunkStats.totalSize / chunkStats.count,
+            embeddingStats,
+            chunkStats: {
+              minSize: chunkStats.minSize,
+              maxSize: chunkStats.maxSize,
+              optimalChunks: chunks.length,
+              averageSize: chunkStats.totalSize / chunkStats.count
+            },
+            processingTime,
+            vectorDimensions: embeddingStats.dimensions,
+            vectorDensity: validVectors.length / (chunkStats.totalSize / 1000), // vectors per KB
+            contentQuality: {
+              textDensity: chunkStats.totalSize / documents.length,
+              vectorEfficiency: validVectors.length / chunks.length
+            }
+          };
+          fileIngestions.set(initialFileData.id, initialFileData);
 
           return {
             fileId: driveResponse.data.id,
@@ -291,19 +309,14 @@ export async function POST(req: NextRequest) {
         } catch (error) {
           console.error(`Error processing file ${file.name}:`, error);
           
-          // Update status to error if we have the initial record
-          if (initialFileData) {
-            await supabase
-              .from('file_ingestions')
-              .update({
-                status: 'failed',
-                metadata: {
-                  error: error instanceof Error ? error.message : 'Unknown error occurred',
-                  errorTimestamp: Date.now(),
-                }
-              })
-              .eq('id', initialFileData.id);
-          }
+          // Update status to error
+          initialFileData.status = 'failed';
+          initialFileData.updated_at = new Date().toISOString();
+          initialFileData.metadata = {
+            error: error instanceof Error ? error.message : 'Unknown error occurred',
+            errorTimestamp: Date.now(),
+          };
+          fileIngestions.set(initialFileData.id, initialFileData);
           
           throw error;
         }

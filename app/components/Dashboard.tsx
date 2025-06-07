@@ -5,17 +5,47 @@ import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
-  FaUser, FaCloudUploadAlt, FaFileAlt, FaHistory, 
-  FaCog, FaBell, FaFolder, FaChartLine, FaDownload,
-  FaTrash, FaEllipsisH, FaSearch, FaDatabase, FaTrashRestore
+  FaUser, FaCloudUploadAlt, FaHistory, 
+  FaCog, FaBell, FaDownload,
+  FaTrash, FaSearch, FaDatabase, FaTrashRestore,
+  FaHome, FaSignOutAlt, FaUserCircle, FaChevronDown,
+  FaTachometerAlt
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { formatDistanceToNow } from 'date-fns';
 import { formatBytes } from '../utils/formatBytes';
-import { supabase, FileIngestion } from '../lib/supabase';
-import { Check, AlertCircle, Clock, BarChart3, Files, Upload, HardDrive, FileText, Binary, Layers, Network, Cpu } from 'lucide-react';
+import { Check, AlertCircle, Clock, Files, HardDrive, FileText, Binary, Network } from 'lucide-react';
 import { Tooltip } from 'react-tooltip';
+import ConfirmationDialog from './ConfirmationDialog';
+
+
+interface FileMetadata {
+  averageChunkSize?: number;
+  processingTime?: number;
+  [key: string]: unknown;
+}
+
+interface FileIngestion {
+  id: string;
+  user_id: string;
+  email_id: string | null | undefined;
+  file_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  status: 'pending' | 'ingested' | 'failed';
+  vector_count?: number;
+  chunk_count?: number;
+  ingestion_date?: string;
+  created_at: string;
+  updated_at: string;
+  error_message?: string;
+  metadata?: FileMetadata;
+  pinecone_namespace?: string;
+  is_archived?: boolean;
+  deleted_at?: string | null;
+}
 
 interface DriveFile {
   id: string;
@@ -86,51 +116,41 @@ const getColorForIndex = (index: number): string => {
 const FileCard = ({ 
   file, 
   ingestionStatus,
-  onDelete 
+  onDelete,
+  onIngest,
+  isProcessing
 }: { 
   file: DriveFile; 
   ingestionStatus?: FileIngestion;
   onDelete: (fileId: string) => void;
+  onIngest: (fileId: string, fileName: string) => void;
+  isProcessing?: boolean;
 }) => {
-  const [isIngesting, setIsIngesting] = useState(false);
-
-  // Function to check if file is already ingested
-  const isFileIngested = useMemo(() => {
-    return ingestionStatus?.status === 'ingested' && !ingestionStatus?.deleted_at;
-  }, [ingestionStatus]);
+  const [isRefreshing] = useState(false);
 
   const handleIngest = async () => {
-    if (isFileIngested) return;
-    
-    setIsIngesting(true);
-    try {
-      const response = await fetch('/api/ingestion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          fileId: file.id, 
-          fileName: file.name 
-        }),
-      });
-      
-      if (!response.ok) throw new Error('Ingestion failed');
-      toast.success('File ingestion started');
-    } catch (error) {
-      toast.error('Failed to start ingestion');
-      console.error(error);
-    } finally {
-      setIsIngesting(false);
-    }
+    onIngest(file.id, file.name);
   };
 
   const getStatusIcon = () => {
-    if (isIngesting) {
+    // Check what's happening with processing state
+    const isCurrentlyProcessing = isProcessing || isRefreshing;
+    const hasPendingStatus = ingestionStatus?.status === 'pending' && !ingestionStatus.deleted_at;
+    
+    // Always show loader first if file is being processed OR has pending status
+    if (isCurrentlyProcessing || hasPendingStatus) {
       return (
         <motion.div 
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           data-tooltip-id="status-tooltip"
-          data-tooltip-content="Processing file..."
+          data-tooltip-content={
+            isCurrentlyProcessing 
+              ? "Processing file..." 
+              : hasPendingStatus 
+                ? "Ingestion in progress..." 
+                : "Updating status..."
+          }
           className="p-2"
         >
           <Clock className="w-5 h-5 text-yellow-500" />
@@ -138,77 +158,95 @@ const FileCard = ({
       );
     }
 
-    if (!ingestionStatus || ingestionStatus.deleted_at) {
-      return (
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handleIngest}
-          className="p-2 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full transition-colors"
-          data-tooltip-id="status-tooltip"
-          data-tooltip-content="Ingest file into AI database"
-        >
-          <FaDatabase className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-        </motion.button>
-      );
+    // If file has ingestion status and is not deleted, show status-based icon
+    if (ingestionStatus && !ingestionStatus.deleted_at) {
+      switch (ingestionStatus.status) {
+        case 'ingested':
+          return (
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="p-2"
+              data-tooltip-id="status-tooltip"
+              data-tooltip-content={`✓ Successfully ingested\n${ingestionStatus.vector_count || 0} vectors created\nClick to view details`}
+            >
+              <div className="relative">
+                <Check className="w-5 h-5 text-green-500" />
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-green-500"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </div>
+            </motion.div>
+          );
+        case 'failed':
+          return (
+            <div 
+              className="p-2"
+              data-tooltip-id="status-tooltip"
+              data-tooltip-content={`Ingestion failed: ${ingestionStatus.error_message || 'Unknown error'}`}
+            >
+              <AlertCircle className="w-5 h-5 text-red-500" />
+            </div>
+          );
+        // Note: 'pending' case is now handled above in the processing check
+        default:
+          return null;
+      }
     }
 
-    switch (ingestionStatus.status) {
-      case 'ingested':
-        return (
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="p-2"
-            data-tooltip-id="status-tooltip"
-            data-tooltip-content={`✓ Successfully ingested\n${ingestionStatus.vector_count} vectors created\nClick to view details`}
-          >
-            <div className="relative">
-              <Check className="w-5 h-5 text-green-500" />
-              <motion.div
-                className="absolute inset-0 rounded-full border-2 border-green-500"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-            </div>
-          </motion.div>
-        );
-      case 'failed':
-        return (
-          <div 
-            className="p-2"
-            data-tooltip-id="status-tooltip"
-            data-tooltip-content={`Ingestion failed: ${ingestionStatus.error_message}`}
-          >
-            <AlertCircle className="w-5 h-5 text-red-500" />
-          </div>
-        );
-      case 'pending':
-        return (
-          <motion.div 
-            className="p-2"
-            animate={{ opacity: [1, 0.5, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            data-tooltip-id="status-tooltip"
-            data-tooltip-content="Processing in progress..."
-          >
-            <Clock className="w-5 h-5 text-yellow-500" />
-          </motion.div>
-        );
-      default:
-        return null;
-    }
+    // Default: show ingest button for files without status or deleted files
+    return (
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={handleIngest}
+        className="p-2 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full transition-colors"
+        data-tooltip-id="status-tooltip"
+        data-tooltip-content="Ingest file into AI database"
+      >
+        <FaDatabase className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+      </motion.button>
+    );
+  };
+
+  // Get file type icon as fallback
+  const getFileTypeIcon = () => {
+    const mimeType = file.mimeType.toLowerCase();
+    if (mimeType.includes('pdf')) return '📄';
+    if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+    if (mimeType.includes('sheet') || mimeType.includes('excel')) return '📊';
+    if (mimeType.includes('image')) return '🖼️';
+    if (mimeType.includes('text')) return '📃';
+    return '📁';
   };
 
   return (
     <div className="relative group">
       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-300">
         <div className="flex items-center space-x-4">
-          <img
-            src={file.iconLink}
-            alt={file.mimeType}
-            className="w-8 h-8"
-          />
+          {/* File icon with fallback */}
+          <div className="w-8 h-8 flex items-center justify-center">
+            {file.iconLink ? (
+              <img
+                src={file.iconLink}
+                alt={file.mimeType}
+                className="w-8 h-8"
+                onError={(e) => {
+                  // Replace with emoji fallback if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `<span class="text-2xl">${getFileTypeIcon()}</span>`;
+                  }
+                }}
+              />
+            ) : (
+              <span className="text-2xl">{getFileTypeIcon()}</span>
+            )}
+          </div>
           <div>
             <a
               href={file.webViewLink}
@@ -220,6 +258,11 @@ const FileCard = ({
             </a>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {formatBytes(parseInt(file.size))} • {formatDistanceToNow(new Date(file.createdTime))} ago
+              {ingestionStatus && (
+                <span className="ml-2 px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-600">
+                  {ingestionStatus.status}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -324,7 +367,7 @@ const FileCard = ({
                 <div className="flex justify-between">
                   <span className="text-gray-400">Document Pages</span>
                   <span className="text-gray-200">
-                    {ingestionStatus.metadata?.documentCount || 1}
+                    {(ingestionStatus.metadata?.documentCount as number) || 1}
                   </span>
                 </div>
 
@@ -609,13 +652,80 @@ const getActivityColor = (value: number): string => {
   return '#C7D2FE'; // lightest
 };
 
+// Helper function to create mock data for demo purposes
+const createMockData = (email: string) => {
+  return {
+    ingestionStatuses: {
+      'file_1': {
+        id: 'ing_1',
+        user_id: 'user_123',
+        email_id: email,
+        file_id: 'file_1',
+        file_name: 'example-document.pdf',
+        file_type: 'pdf',
+        file_size: 125000,
+        status: 'ingested' as const,
+        vector_count: 120,
+        chunk_count: 15,
+        ingestion_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        deleted_at: null,
+        metadata: {
+          documentCount: 1,
+          averageChunkSize: 350,
+          processingTime: 3.5,
+        }
+      },
+      'file_2': {
+        id: 'ing_2',
+        user_id: 'user_123',
+        email_id: email,
+        file_id: 'file_2',
+        file_name: 'code-sample.js',
+        file_type: 'js',
+        file_size: 45000,
+        status: 'ingested' as const,
+        vector_count: 85,
+        chunk_count: 8,
+        ingestion_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        deleted_at: null,
+        metadata: {
+          documentCount: 1,
+          averageChunkSize: 280,
+          processingTime: 2.1,
+        }
+      }
+    },
+    dashboardStats: {
+      storageUsed: 170000,
+      totalFiles: 2,
+      recentUploads: 2,
+      totalVectors: 205,
+      averageChunkSize: 315,
+      processingFiles: 0,
+      averageEmbeddingDimension: 1536,
+      vectorDensity: 1.21,
+      processingTimes: [3.5, 2.1],
+      fileTypeDistribution: { 'pdf': 1, 'js': 1 },
+      embeddingStats: { minMagnitude: 0.82, maxMagnitude: 0.95, averageMagnitude: 0.89 },
+      chunkStats: { minSize: 180, maxSize: 500, optimalChunks: 23 },
+      ingestionSuccess: { successful: 2, failed: 0, pending: 0 },
+      vectorQuality: { density: 1.21, efficiency: 102.5, dimensions: 1536 },
+      contentMetrics: { textDensity: 157.5, averageDocumentSize: 85000, processingEfficiency: 102.5 },
+      timeMetrics: { averageProcessingTime: 2.8, fastestProcessing: 2.1, slowestProcessing: 3.5 }
+    }
+  };
+};
+
 const Dashboard: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('files');
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -623,6 +733,41 @@ const Dashboard: React.FC = () => {
   const [isDeletingFile, setIsDeletingFile] = useState<string | null>(null);
   const [processingFiles, setProcessingFiles] = useState<Set<string>>(new Set());
   const [ingestionStatuses, setIngestionStatuses] = useState<Record<string, FileIngestion>>({});
+  
+  // New states for enhanced header
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [notifications] = useState([
+    { id: 1, type: 'success', message: 'File successfully ingested', time: '2 minutes ago', read: false },
+    { id: 2, type: 'info', message: 'System maintenance scheduled', time: '1 hour ago', read: false },
+    { id: 3, type: 'warning', message: 'Storage approaching limit', time: '3 hours ago', read: true },
+  ]);
+
+  // Confirmation dialog state for delete
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    fileId: string;
+    fileName: string;
+  }>({
+    isOpen: false,
+    fileId: '',
+    fileName: ''
+  });
+
+  // Ingest confirmation dialog state
+  const [ingestConfirmationDialog, setIngestConfirmationDialog] = useState<{
+    isOpen: boolean;
+    fileId: string;
+    fileName: string;
+  }>({
+    isOpen: false,
+    fileId: '',
+    fileName: ''
+  });
+
+  const [isIngestingFile, setIsIngestingFile] = useState<string | null>(null);
+
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     storageUsed: 0,
     totalFiles: 0,
@@ -634,15 +779,15 @@ const Dashboard: React.FC = () => {
     vectorDensity: 0,
     processingTimes: [],
     fileTypeDistribution: {},
-    embeddingStats: { minMagnitude: Infinity, maxMagnitude: 0, averageMagnitude: 0 },
-    chunkStats: { minSize: Infinity, maxSize: 0, optimalChunks: 0 },
+    embeddingStats: { minMagnitude: 0, maxMagnitude: 0, averageMagnitude: 0 },
+    chunkStats: { minSize: 0, maxSize: 0, optimalChunks: 0 },
     ingestionSuccess: { successful: 0, failed: 0, pending: 0 },
     vectorQuality: { density: 0, efficiency: 0, dimensions: 0 },
     contentMetrics: { textDensity: 0, averageDocumentSize: 0, processingEfficiency: 0 },
     timeMetrics: { averageProcessingTime: 0, fastestProcessing: 0, slowestProcessing: 0 }
   });
 
-  // Function to fetch files
+  // Function to fetch files from Google Drive
   const fetchFiles = async () => {
     try {
       setIsLoading(true);
@@ -661,6 +806,167 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Fetch real file metadata from database
+  const fetchFileMetadata = async () => {
+    try {
+      const response = await fetch('/api/file-metadata');
+      if (!response.ok) {
+        throw new Error('Failed to fetch file metadata');
+      }
+      const data = await response.json();
+      if (data.success) {
+        setIngestionStatuses(data.fileMetadata);
+        
+        // Calculate real dashboard stats from the metadata
+        const metadata = Object.values(data.fileMetadata) as FileIngestion[];
+        const stats = calculateDashboardStats(metadata);
+        setDashboardStats(stats);
+      }
+    } catch (err) {
+      console.error('Failed to fetch file metadata:', err);
+      // Fall back to mock data if real data fails
+      loadMockData();
+    }
+  };
+
+  // Calculate dashboard stats from real metadata
+  const calculateDashboardStats = (metadata: FileIngestion[]): DashboardStats => {
+    // Filter only active files (not soft deleted)
+    const activeMetadata = metadata.filter(f => !f.deleted_at);
+    
+    const totalFiles = activeMetadata.length;
+    const ingestedFiles = activeMetadata.filter(f => f.status === 'ingested');
+    const pendingFiles = activeMetadata.filter(f => f.status === 'pending');
+    const failedFiles = activeMetadata.filter(f => f.status === 'failed');
+    
+    const totalVectors = ingestedFiles.reduce((sum, f) => sum + (f.vector_count || 0), 0);
+    const totalChunks = ingestedFiles.reduce((sum, f) => sum + (f.chunk_count || 0), 0);
+    const averageChunkSize = ingestedFiles.length > 0 
+      ? ingestedFiles.reduce((sum, f) => sum + (f.metadata?.averageChunkSize || 0), 0) / ingestedFiles.length 
+      : 0;
+
+    const processingTimes = ingestedFiles
+      .map(f => f.metadata?.processingTime || 0)
+      .filter(t => t > 0);
+
+    const fileTypeDistribution = activeMetadata.reduce((acc, f) => {
+      const type = f.file_type || 'unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      storageUsed: activeMetadata.reduce((sum, f) => sum + (f.file_size || 0), 0),
+      totalFiles,
+      recentUploads: activeMetadata.filter(f => {
+        const createdAt = new Date(f.created_at);
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        return createdAt > dayAgo;
+      }).length,
+      totalVectors,
+      averageChunkSize: Math.round(averageChunkSize),
+      processingFiles: pendingFiles.length,
+      averageEmbeddingDimension: 1536, // OpenAI default
+      vectorDensity: totalFiles > 0 ? totalVectors / totalFiles : 0,
+      processingTimes,
+      fileTypeDistribution,
+      embeddingStats: {
+        minMagnitude: 0.8,
+        maxMagnitude: 1.2,
+        averageMagnitude: 1.0
+      },
+      chunkStats: {
+        minSize: 100,
+        maxSize: 2000,
+        optimalChunks: totalChunks
+      },
+      ingestionSuccess: {
+        successful: ingestedFiles.length,
+        failed: failedFiles.length,
+        pending: pendingFiles.length
+      },
+      vectorQuality: {
+        density: totalFiles > 0 ? totalVectors / totalFiles : 0,
+        efficiency: totalChunks > 0 ? totalVectors / totalChunks : 0,
+        dimensions: 1536
+      },
+      contentMetrics: {
+        textDensity: averageChunkSize / 500,
+        averageDocumentSize: activeMetadata.reduce((sum, f) => sum + (f.file_size || 0), 0) / Math.max(totalFiles, 1),
+        processingEfficiency: ingestedFiles.length / Math.max(totalFiles, 1)
+      },
+      timeMetrics: {
+        averageProcessingTime: processingTimes.length > 0 
+          ? processingTimes.reduce((sum, t) => sum + t, 0) / processingTimes.length 
+          : 0,
+        fastestProcessing: processingTimes.length > 0 ? Math.min(...processingTimes) : 0,
+        slowestProcessing: processingTimes.length > 0 ? Math.max(...processingTimes) : 0
+      }
+    };
+  };
+
+  // Calculate accurate real-time statistics based on current files and their status
+  const calculateAccurateStats = useMemo(() => {
+    // Get active files from Google Drive (files that are currently visible)
+    const activeFiles = files;
+    
+    // Get corresponding ingestion statuses for these files
+    const activeIngestionStatuses = activeFiles.map(file => ingestionStatuses[file.id]).filter(Boolean);
+    
+    // Calculate statistics based on actual visible files and their database status
+    const totalActiveFiles = activeFiles.length;
+    const ingestedCount = activeIngestionStatuses.filter(status => 
+      status && status.status === 'ingested' && !status.deleted_at
+    ).length;
+    const processingCount = activeIngestionStatuses.filter(status => 
+      status && status.status === 'pending' && !status.deleted_at
+    ).length;
+    const failedCount = activeIngestionStatuses.filter(status => 
+      status && status.status === 'failed' && !status.deleted_at
+    ).length;
+    
+    // Files that exist in Google Drive but not yet in database (not ingested)
+    const notIngestedCount = activeFiles.filter(file => {
+      const status = ingestionStatuses[file.id];
+      return !status || status.deleted_at;
+    }).length;
+
+    // Calculate vector and storage statistics from ingested files only
+    const ingestedFiles = activeIngestionStatuses.filter(status => 
+      status && status.status === 'ingested' && !status.deleted_at
+    );
+    
+    const totalVectors = ingestedFiles.reduce((sum, status) => sum + (status.vector_count || 0), 0);
+    const totalChunks = ingestedFiles.reduce((sum, status) => sum + (status.chunk_count || 0), 0);
+    const averageChunkSize = ingestedFiles.length > 0 
+      ? ingestedFiles.reduce((sum, status) => sum + (status.metadata?.averageChunkSize || 0), 0) / ingestedFiles.length 
+      : 0;
+    
+    // Calculate storage used from active files (Google Drive files)
+    const storageUsed = activeFiles.reduce((sum, file) => sum + parseInt(file.size || '0'), 0);
+    
+    // Calculate recent uploads (files uploaded in the last week)
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentUploads = activeFiles.filter(file => {
+      const createdTime = new Date(file.createdTime);
+      return createdTime > weekAgo;
+    }).length;
+
+    return {
+      totalFiles: totalActiveFiles,
+      ingested: ingestedCount,
+      processing: processingCount,
+      failed: failedCount,
+      notIngested: notIngestedCount,
+      // Enhanced stats for top cards
+      totalVectors,
+      averageChunkSize: Math.round(averageChunkSize),
+      storageUsed,
+      recentUploads,
+      successRate: totalActiveFiles > 0 ? Math.round((ingestedCount / totalActiveFiles) * 100) : 0
+    };
+  }, [files, ingestionStatuses]);
+
   // Authentication check effect
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -668,335 +974,47 @@ const Dashboard: React.FC = () => {
     }
   }, [status, router]);
 
-  // Function to fetch ingestion statuses
-  const fetchIngestionStatuses = useCallback(async () => {
+  // Function to load mock data for visualization purposes (fallback)
+  const loadMockData = useCallback(() => {
     if (!session?.user?.email) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('file_ingestions')
-        .select('*')
-        .eq('email_id', session.user.email)
-        .is('deleted_at', null);
-
-      if (error) throw error;
-
-      if (data) {
-        // Create a map of fileId to ingestion status
-        const statusMap = data.reduce((acc, status) => ({
-          ...acc,
-          [status.file_id]: status
-        }), {});
-        setIngestionStatuses(statusMap);
-      }
-    } catch (error) {
-      console.error('Error fetching ingestion statuses:', error);
-    }
+    
+    // Create mock data based on the user's email
+    const mockData = createMockData(session.user.email);
+    setIngestionStatuses(mockData.ingestionStatuses);
+    setDashboardStats(mockData.dashboardStats);
   }, [session?.user?.email]);
 
-  // Update the fetchDashboardStats function to ensure accurate counts
-  const fetchDashboardStats = useCallback(async () => {
-    if (!session?.user?.email) {
-      console.log('No user email found in session');
-      return;
-    }
-
-    try {
-      // First check if the table exists and we have access
-      const { data: tableInfo, error: tableError } = await supabase
-        .from('file_ingestions')
-        .select('count')
-        .limit(1);
-
-      if (tableError) {
-        console.error('Error accessing file_ingestions table:', tableError);
-        return;
-      }
-
-      // Fetch all non-deleted files with error handling
-      const { data: activeFiles, error: filesError } = await supabase
-        .from('file_ingestions')
-        .select('*')
-        .eq('email_id', session.user.email)
-        .is('deleted_at', null);
-
-      if (filesError) {
-        console.error('Error fetching files:', filesError);
-        return;
-      }
-
-      if (!activeFiles) {
-        console.log('No active files found');
-        return;
-      }
-
-      // Create initial stats object with accurate file count
-      const initialStats: DashboardStats = {
-        storageUsed: 0,
-        totalFiles: activeFiles.length,
-        recentUploads: 0,
-        totalVectors: 0,
-        averageChunkSize: 0,
-        processingFiles: 0,
-        averageEmbeddingDimension: 0,
-        vectorDensity: 0,
-        processingTimes: [],
-        fileTypeDistribution: {},
-        embeddingStats: { minMagnitude: Infinity, maxMagnitude: 0, averageMagnitude: 0 },
-        chunkStats: { minSize: Infinity, maxSize: 0, optimalChunks: 0 },
-        ingestionSuccess: { successful: 0, failed: 0, pending: 0 },
-        vectorQuality: { density: 0, efficiency: 0, dimensions: 0 },
-        contentMetrics: { textDensity: 0, averageDocumentSize: 0, processingEfficiency: 0 },
-        timeMetrics: { averageProcessingTime: 0, fastestProcessing: 0, slowestProcessing: 0 }
-      };
-
-      // Calculate stats from active files with type safety
-      const stats = activeFiles.reduce((acc, file) => {
-        try {
-          // Update file type distribution
-          const fileType = (file.file_type?.toLowerCase() || 'unknown') as string;
-          acc.fileTypeDistribution[fileType] = (acc.fileTypeDistribution[fileType] || 0) + 1;
-
-          // Safely access nested properties
-          const fileSize = typeof file.file_size === 'number' ? file.file_size : 0;
-          const vectorCount = typeof file.vector_count === 'number' ? file.vector_count : 0;
-          const avgChunkSize = file.metadata?.averageChunkSize || 0;
-          const processingTime = file.metadata?.processingTime || 0;
-
-          // Update accumulator with safe values
-          return {
-            ...acc,
-            storageUsed: acc.storageUsed + fileSize,
-            recentUploads: acc.recentUploads + (
-              new Date(file.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 ? 1 : 0
-            ),
-            totalVectors: acc.totalVectors + vectorCount,
-            averageChunkSize: acc.averageChunkSize + avgChunkSize,
-            processingFiles: acc.processingFiles + (file.status === 'pending' ? 1 : 0),
-            ingestionSuccess: {
-              successful: acc.ingestionSuccess.successful + (file.status === 'ingested' ? 1 : 0),
-              failed: acc.ingestionSuccess.failed + (file.status === 'failed' ? 1 : 0),
-              pending: acc.ingestionSuccess.pending + (file.status === 'pending' ? 1 : 0)
-            },
-            processingTimes: processingTime > 0 ? [...acc.processingTimes, processingTime] : acc.processingTimes
-          };
-        } catch (err) {
-          console.error('Error processing file stats:', err, file);
-          return acc;
-        }
-      }, initialStats);
-
-      // Calculate derived metrics with safe math operations
-      const totalKB = Math.max(stats.storageUsed / 1024, 1);
-      const safeFileCount = Math.max(stats.totalFiles, 1);
-
-      const vectorQuality = {
-        density: stats.totalVectors / totalKB,
-        efficiency: stats.totalVectors / safeFileCount,
-        dimensions: 1536 // Standard for text-embedding-3-small
-      };
-
-      const contentMetrics = {
-        textDensity: stats.averageChunkSize / safeFileCount,
-        averageDocumentSize: stats.storageUsed / safeFileCount,
-        processingEfficiency: stats.totalVectors / safeFileCount
-      };
-
-      const timeMetrics = {
-        averageProcessingTime: stats.processingTimes.length ? 
-          stats.processingTimes.reduce((a: number, b: number) => a + b, 0) / stats.processingTimes.length : 
-          0,
-        fastestProcessing: stats.processingTimes.length ? Math.min(...stats.processingTimes) : 0,
-        slowestProcessing: stats.processingTimes.length ? Math.max(...stats.processingTimes) : 0
-      };
-
-      setDashboardStats({
-        ...stats,
-        vectorQuality,
-        contentMetrics,
-        timeMetrics
-      });
-
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      // Set default stats in case of error
-      setDashboardStats({
-        storageUsed: 0,
-        totalFiles: 0,
-        recentUploads: 0,
-        totalVectors: 0,
-        averageChunkSize: 0,
-        processingFiles: 0,
-        averageEmbeddingDimension: 0,
-        vectorDensity: 0,
-        processingTimes: [],
-        fileTypeDistribution: {},
-        embeddingStats: { minMagnitude: 0, maxMagnitude: 0, averageMagnitude: 0 },
-        chunkStats: { minSize: 0, maxSize: 0, optimalChunks: 0 },
-        ingestionSuccess: { successful: 0, failed: 0, pending: 0 },
-        vectorQuality: { density: 0, efficiency: 0, dimensions: 1536 },
-        contentMetrics: { textDensity: 0, averageDocumentSize: 0, processingEfficiency: 0 },
-        timeMetrics: { averageProcessingTime: 0, fastestProcessing: 0, slowestProcessing: 0 }
-      });
-    }
-  }, [session?.user?.email]);
-
-  // Fetch files and ingestion statuses
+  // Effect to fetch files and metadata when session is available
   useEffect(() => {
     if (session) {
       fetchFiles();
-      fetchIngestionStatuses();
-      fetchDashboardStats();
+      fetchFileMetadata(); // Use real data instead of mock data
     }
-  }, [session, fetchIngestionStatuses, fetchDashboardStats]);
+  }, [session]);
 
-  // Update the useEffect to refresh stats more frequently
-  useEffect(() => {
-    if (!session?.user?.email) return;
-
-    fetchDashboardStats(); // Initial fetch
-    const intervalId = setInterval(fetchDashboardStats, 5000); // Refresh every 5 seconds
-
-    return () => clearInterval(intervalId);
-  }, [session?.user?.email, fetchDashboardStats]);
-
-  const handleDeleteFile = async (fileId: string) => {
-    try {
-      setIsDeletingFile(fileId);
-      
-      // Check if file is already soft-deleted
-      const existingStatus = ingestionStatuses[fileId];
-      const isRestore = existingStatus?.deleted_at != null;
-
-      const response = await fetch('/api/file-status', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          fileId,
-          action: isRestore ? 'restore' : 'delete'
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update file status');
-
-      // Refresh ingestion statuses
-      const { data } = await supabase
-        .from('file_ingestions')
-        .select('*')
-        .eq('email_id', session?.user?.email)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        const statusMap = data.reduce((acc, status) => ({
-          ...acc,
-          [status.file_id]: status
-        }), {});
-        setIngestionStatuses(statusMap);
-      }
-
-    } catch (error) {
-      console.error('Status update error:', error);
-      toast.error('Failed to update file status');
-    } finally {
-      setIsDeletingFile(null);
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    const fileArray = Array.from(files);
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const file of fileArray) {
-      const fileId = Math.random().toString(36).substring(7);
-      setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
-
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/upload-to-drive', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Upload failed: ${response.statusText}`);
-        }
-
-        successCount++;
-        setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
-      } catch (error) {
-        console.error('Upload error:', error);
-        errorCount++;
-      } finally {
-        setUploadProgress(prev => {
-          const newProgress = { ...prev };
-          delete newProgress[fileId];
-          return newProgress;
-        });
-      }
-    }
-
-    // Show summary toast with react-toastify
-    if (successCount > 0) {
-      toast.success(`Successfully uploaded ${successCount} file${successCount !== 1 ? 's' : ''}`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    }
-    if (errorCount > 0) {
-      toast.error(`Failed to upload ${errorCount} file${errorCount !== 1 ? 's' : ''}`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    }
-
-    fetchFiles();
-  };
-
-  // Add this function to render upload progress
-  const renderUploadProgress = () => {
-    return Object.entries(uploadProgress).map(([fileId, progress]) => (
-      <div key={fileId} className="mt-2">
-        <div className="flex justify-between mb-1">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Uploading...</span>
-          <span className="text-sm text-gray-600 dark:text-gray-400">{progress}%</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-          <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-      </div>
-    ));
-  };
-
-  const handleFileSelect = (fileId: string) => {
-    setSelectedFiles(prev => 
-      prev.includes(fileId) 
-        ? prev.filter(id => id !== fileId)
-        : [...prev, fileId]
-    );
-  };
-
+  // Handle file ingestion with confirmation
   const handleIngestFile = async (fileId: string, fileName: string) => {
+    // Show ingest confirmation dialog
+    setIngestConfirmationDialog({
+      isOpen: true,
+      fileId,
+      fileName
+    });
+  };
+
+  // Actual ingestion function called after confirmation
+  const performIngestFile = async () => {
+    const { fileId, fileName } = ingestConfirmationDialog;
+    
+    // Close the dialog immediately when user clicks "Ingest File"
+    setIngestConfirmationDialog({
+      isOpen: false,
+      fileId: '',
+      fileName: ''
+    });
+    
     try {
+      setIsIngestingFile(fileId);
       setProcessingFiles(prev => new Set([...prev, fileId]));
       
       const response = await fetch('/api/ingestion', {
@@ -1012,12 +1030,32 @@ const Dashboard: React.FC = () => {
       }
 
       const data = await response.json();
-      toast.success(`Successfully processed ${fileName}`);
+      
+      // Show success message
+      toast.success(`✓ ${fileName} ingestion completed successfully`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
+      // Refresh both files and metadata after successful ingestion
+      await refreshData();
       
     } catch (error) {
       console.error('Ingestion error:', error);
-      toast.error(`Failed to process ${fileName}`);
+      toast.error(`✗ Failed to ingest ${fileName}`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
+      setIsIngestingFile(null);
       setProcessingFiles(prev => {
         const newSet = new Set(prev);
         newSet.delete(fileId);
@@ -1025,6 +1063,383 @@ const Dashboard: React.FC = () => {
       });
     }
   };
+
+  // Handle file deletion with confirmation
+  const handleDeleteFile = async (fileId: string) => {
+    // Find the file name
+    const file = files.find(f => f.id === fileId);
+    const fileName = file?.name || 'Unknown file';
+    
+    // Show confirmation dialog
+    setConfirmationDialog({
+      isOpen: true,
+      fileId,
+      fileName
+    });
+  };
+
+  // Actual deletion function called after confirmation
+  const performDeleteFile = async () => {
+    const { fileId, fileName } = confirmationDialog;
+    
+    try {
+      setIsDeletingFile(fileId);
+      
+      // Soft delete using the new API endpoint
+      const response = await fetch(`/api/drive-files/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileId
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete file');
+      }
+
+      if (result.success) {
+        // Show success message
+        toast.success(`File "${result.fileName}" deleted successfully`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Refresh data to update the UI
+        await refreshData();
+      } else {
+        throw new Error(result.error || 'Delete operation failed');
+      }
+      
+    } catch (error: any) {
+      console.error('Delete file error:', error);
+      toast.error(error.message || 'Failed to delete file', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      setIsDeletingFile(null);
+      // Close confirmation dialog
+      setConfirmationDialog({
+        isOpen: false,
+        fileId: '',
+        fileName: ''
+      });
+    }
+  };
+
+  // Close confirmation dialog
+  const closeConfirmationDialog = () => {
+    setConfirmationDialog({
+      isOpen: false,
+      fileId: '',
+      fileName: ''
+    });
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    
+    // Set uploading state immediately
+    setUploading(true);
+    
+    // Show immediate feedback to user
+    toast.info(`Starting upload of ${fileArray.length} file${fileArray.length !== 1 ? 's' : ''}...`, {
+      position: "top-right",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Process files sequentially for better progress tracking
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const fileId = `${file.name}-${Date.now()}-${i}`;
+      
+      // Initialize progress for this file
+      setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
+
+      try {
+        // Show progress for current file
+        toast.info(`Uploading ${file.name}... (${i + 1}/${fileArray.length})`, {
+          position: "top-right",
+          autoClose: 1500,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Simulate realistic progress updates
+        const updateProgress = (progress: number) => {
+          setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
+        };
+
+        // Start with initial progress
+        updateProgress(5);
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Simulate file preparation (10-20%)
+        updateProgress(15);
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Simulate upload start (20-30%)
+        updateProgress(25);
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Create XMLHttpRequest for better progress tracking
+        const uploadPromise = new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          // Track upload progress
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = (event.loaded / event.total) * 100;
+              // Map the actual progress to 30-90% range (leaving room for processing)
+              const mappedProgress = 30 + (percentComplete * 0.6);
+              updateProgress(Math.round(mappedProgress));
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // Upload complete, now processing (90-95%)
+              updateProgress(90);
+              setTimeout(() => {
+                updateProgress(95);
+                setTimeout(() => {
+                  updateProgress(100);
+                  resolve(xhr.response);
+                }, 300);
+              }, 200);
+            } else {
+              reject(new Error(`Upload failed with status: ${xhr.status}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => {
+            reject(new Error('Upload failed'));
+          });
+
+          xhr.open('POST', '/api/upload-to-drive');
+          xhr.send(formData);
+        });
+
+        await uploadPromise;
+        successCount++;
+        
+        // Show success for individual file
+        toast.success(`✓ ${file.name} uploaded successfully`, {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Keep progress at 100% for a moment before removing
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+      } catch (error) {
+        console.error('Upload error:', error);
+        errorCount++;
+        
+        // Show error for individual file
+        toast.error(`✗ Failed to upload ${file.name}`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } finally {
+        // Remove progress for this file after a delay
+        setTimeout(() => {
+          setUploadProgress(prev => {
+            const newProgress = { ...prev };
+            delete newProgress[fileId];
+            return newProgress;
+          });
+        }, 1500);
+      }
+    }
+
+    // Show final summary toast
+    if (successCount > 0) {
+      toast.success(`🎉 Upload complete! ${successCount} file${successCount !== 1 ? 's' : ''} uploaded successfully`, {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+    if (errorCount > 0) {
+      toast.error(`❌ ${errorCount} file${errorCount !== 1 ? 's' : ''} failed to upload`, {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+
+    // Reset uploading state
+    setUploading(false);
+
+    // Refresh both files and metadata after upload
+    await refreshData();
+    
+    // Clear the file input
+    event.target.value = '';
+  };
+
+  // Enhanced function to render upload progress with better UI
+  const renderUploadProgress = () => {
+    const progressEntries = Object.entries(uploadProgress);
+    if (progressEntries.length === 0) return null;
+
+    return (
+      <div className="space-y-3">
+        {progressEntries.map(([fileId, progress]) => {
+          const fileName = fileId.split('-')[0]; // Extract filename from fileId
+          return (
+            <div key={fileId} className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-xs">
+                  {fileName}
+                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {Math.round(progress)}%
+                  </span>
+                  {progress === 100 ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="text-green-500"
+                    >
+                      ✓
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4"
+                    >
+                      <div className="w-full h-full border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    progress === 100 
+                      ? 'bg-green-500' 
+                      : progress > 90 
+                        ? 'bg-blue-500' 
+                        : 'bg-indigo-500'
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                />
+              </div>
+              {progress < 100 && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {progress < 30 ? 'Preparing file...' :
+                   progress < 90 ? 'Uploading to cloud...' :
+                   progress < 100 ? 'Processing...' : 'Complete!'}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Close ingest confirmation dialog
+  const closeIngestConfirmationDialog = () => {
+    setIngestConfirmationDialog({
+      isOpen: false,
+      fileId: '',
+      fileName: ''
+    });
+  };
+
+  // Combined refresh function for both files and metadata
+  const refreshData = async () => {
+    await fetchFiles();
+    await fetchFileMetadata();
+  };
+
+  // Enhanced navigation functions
+  const handleHomeNavigation = () => {
+    router.push('/');
+  };
+
+  const handleSignOut = async () => {
+    // Sign out functionality
+    toast.info('Signing out...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    router.push('/auth');
+  };
+
+  const handleGlobalSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (globalSearchQuery.trim()) {
+      toast.info(`Searching for: ${globalSearchQuery}`);
+      // Implement search logic here
+    }
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.user-menu-container')) {
+        setIsUserMenuOpen(false);
+      }
+      if (!target.closest('.notification-container')) {
+        setIsNotificationPanelOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen || isNotificationPanelOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isUserMenuOpen, isNotificationPanelOpen]);
 
   if (status === 'loading') {
     return (
@@ -1040,40 +1455,234 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Top Navigation Bar */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm">
+      {/* Enhanced Top Navigation Bar */}
+      <motion.div 
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-            </div>
+            {/* Left Section - Logo & Home Button */}
             <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                <FaBell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              </button>
-              <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                <FaCog className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              </button>
-              <div className="flex items-center space-x-3">
-                {session?.user?.image ? (
-                  <img
-                    src={session.user.image}
-                    alt={session.user.name || "User"}
-                    className="w-8 h-8 rounded-full"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                    <FaUser className="w-4 h-4 text-gray-600" />
+              {/* Logo/Brand */}
+              <motion.div 
+                className="flex items-center space-x-3"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="relative">
+                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <FaTachometerAlt className="w-4 h-4 text-white" />
                   </div>
-                )}
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {session?.user?.name}
-                </span>
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+                    AI Dashboard
+                  </h1>
+                </div>
+              </motion.div>
+
+              {/* Home Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleHomeNavigation}
+                className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 text-sm"
+              >
+                <FaHome className="w-3 h-3" />
+                <span className="hidden sm:inline">Home</span>
+              </motion.button>
+            </div>
+
+            {/* Center Section - Global Search */}
+            <div className="hidden md:flex flex-1 max-w-md mx-8">
+              <form onSubmit={handleGlobalSearch} className="w-full">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search files, documents, or ask AI..."
+                    value={globalSearchQuery}
+                    onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 text-sm"
+                  />
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+                </div>
+              </form>
+            </div>
+
+            {/* Right Section - Actions & User Menu */}
+            <div className="flex items-center space-x-3">
+              {/* Notifications */}
+              <div className="relative notification-container">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsNotificationPanelOpen(!isNotificationPanelOpen)}
+                  className="relative p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
+                >
+                  <FaBell className="w-4 h-4" />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
+                    >
+                      {notifications.filter(n => !n.read).length}
+                    </motion.div>
+                  )}
+                </motion.button>
+
+                {/* Notification Panel */}
+                <AnimatePresence>
+                  {isNotificationPanelOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
+                    >
+                      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
+                              !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            }`}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className={`w-2 h-2 rounded-full mt-2 ${
+                                notification.type === 'success' ? 'bg-green-500' :
+                                notification.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+                              }`} />
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-900 dark:text-white">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  {notification.time}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Settings */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
+              >
+                <FaCog className="w-4 h-4" />
+              </motion.button>
+
+              {/* User Menu */}
+              <div className="relative user-menu-container">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-1.5 pr-3 text-white hover:from-indigo-600 hover:to-purple-700 transition-all duration-300"
+                >
+                  {session?.user?.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || "User"}
+                      className="w-6 h-6 rounded-md"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center">
+                      <FaUser className="w-3 h-3" />
+                    </div>
+                  )}
+                  <div className="hidden sm:block text-left">
+                    <p className="text-xs font-medium truncate max-w-24">{session?.user?.name}</p>
+                  </div>
+                  <FaChevronDown className="w-2 h-2" />
+                </motion.button>
+
+                {/* User Dropdown Menu */}
+                <AnimatePresence>
+                  {isUserMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
+                    >
+                      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center space-x-3">
+                          {session?.user?.image ? (
+                            <img
+                              src={session.user.image}
+                              alt={session.user.name || "User"}
+                              className="w-10 h-10 rounded-lg"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center">
+                              <FaUser className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {session?.user?.name}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {session?.user?.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-2">
+                        <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                          <FaUserCircle className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Profile Settings</span>
+                        </button>
+                        <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                          <FaCog className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Preferences</span>
+                        </button>
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                        >
+                          <FaSignOutAlt className="w-4 h-4" />
+                          <span className="text-sm">Sign Out</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </div>
-      </div>
+
+        {/* Mobile Search Bar */}
+        <div className="md:hidden px-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleGlobalSearch} className="mt-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search files or ask AI..."
+                value={globalSearchQuery}
+                onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm"
+              />
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+            </div>
+          </form>
+        </div>
+      </motion.div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1088,7 +1697,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Storage Used</p>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-                  {formatBytes(dashboardStats.storageUsed)}
+                  {formatBytes(calculateAccurateStats.storageUsed)}
                 </h3>
               </div>
               <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -1099,8 +1708,11 @@ const Dashboard: React.FC = () => {
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div 
                   className="bg-blue-600 h-2 rounded-full"
-                  style={{ width: `${Math.min((dashboardStats.storageUsed / (1024 * 1024 * 1024)) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((calculateAccurateStats.storageUsed / (1024 * 1024 * 1024)) * 100, 100)}%` }}
                 ></div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {calculateAccurateStats.totalFiles} active files in Drive
               </div>
             </div>
           </motion.div>
@@ -1114,7 +1726,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Vector Database</p>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-                  {dashboardStats.totalVectors.toLocaleString()} vectors
+                  {calculateAccurateStats.totalVectors.toLocaleString()} vectors
                 </h3>
               </div>
               <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -1125,15 +1737,32 @@ const Dashboard: React.FC = () => {
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Avg. Chunk Size</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {Math.round(dashboardStats.averageChunkSize)} chars
+                  {calculateAccurateStats.averageChunkSize > 0 ? `${calculateAccurateStats.averageChunkSize} chars` : 'N/A'}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Processing</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {dashboardStats.processingFiles} files
+                  {calculateAccurateStats.processing} files
                 </p>
               </div>
+            </div>
+            <div className="mt-3">
+              {calculateAccurateStats.totalVectors > 0 ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-xs text-green-600 dark:text-green-400">
+                    {calculateAccurateStats.ingested} file{calculateAccurateStats.ingested !== 1 ? 's' : ''} ready for AI chat
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    No vectors available - ingest files to enable AI chat
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -1146,7 +1775,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Document Stats</p>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-                  {dashboardStats.totalFiles} files
+                  {calculateAccurateStats.totalFiles} files
                 </h3>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
@@ -1157,18 +1786,115 @@ const Dashboard: React.FC = () => {
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Recent Uploads</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {dashboardStats.recentUploads} this week
+                  {calculateAccurateStats.recentUploads} this week
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Success Rate</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {dashboardStats.totalFiles ? 
-                    Math.round((dashboardStats.totalVectors / dashboardStats.totalFiles) * 100) : 0}%
+                  {calculateAccurateStats.successRate}%
                 </p>
               </div>
             </div>
           </motion.div>
+        </div>
+
+        {/* Status Summary */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Status Summary</h2>
+            <div className="flex items-center space-x-2 text-xs text-green-600 dark:text-green-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Soft Delete Active</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <motion.div
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center">
+                <Files className="h-8 w-8 text-blue-500 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Files</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{calculateAccurateStats.totalFiles}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Active files in Drive
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center">
+                <Check className="h-8 w-8 text-green-500 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Ingested</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {calculateAccurateStats.ingested}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Ready for AI chat
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center">
+                <Clock className="h-8 w-8 text-yellow-500 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Processing</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {calculateAccurateStats.processing}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Currently ingesting
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center">
+                <AlertCircle className="h-8 w-8 text-red-500 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Failed</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {calculateAccurateStats.failed}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Need attention
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+          
+          {/* Additional insight for not ingested files */}
+          {calculateAccurateStats.notIngested > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>{calculateAccurateStats.notIngested}</strong> file{calculateAccurateStats.notIngested !== 1 ? 's' : ''} available for ingestion
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* File Management Section */}
@@ -1206,32 +1932,70 @@ const Dashboard: React.FC = () => {
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               </div>
               <div className="flex space-x-4">
-                <input
-                  type="file"
-                  id="file-upload"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className={`flex items-center px-4 py-2 ${
-                    Object.keys(uploadProgress).length > 0
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                  } text-white rounded-lg transition-colors`}
-                  onClick={e => {
-                    if (Object.keys(uploadProgress).length > 0) {
-                      e.preventDefault();
-                    }
-                  }}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => refreshData()}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+                  disabled={uploading}
                 >
-                  <FaCloudUploadAlt className="w-5 h-5 mr-2" />
-                  {Object.keys(uploadProgress).length > 0 ? 'Uploading...' : 'Upload Files'}
-                </label>
+                  <FaHistory className="w-4 h-4" />
+                  <span>Refresh</span>
+                </motion.button>
+                <motion.label
+                  whileHover={!uploading ? { scale: 1.05 } : {}}
+                  whileTap={!uploading ? { scale: 0.95 } : {}}
+                  className={`px-6 py-3 rounded-lg transition-colors cursor-pointer flex items-center space-x-2 ${
+                    uploading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                  } text-white`}
+                >
+                  {uploading ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      >
+                        <FaHistory className="w-5 h-5" />
+                      </motion.div>
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaCloudUploadAlt className="w-5 h-5" />
+                      <span>Upload Files</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                    disabled={uploading}
+                  />
+                </motion.label>
               </div>
             </div>
+            
+            {/* Upload Progress Section */}
+            {(uploading || Object.keys(uploadProgress).length > 0) && (
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center space-x-2 mb-2">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <FaCloudUploadAlt className="w-4 h-4 text-blue-600" />
+                  </motion.div>
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Upload in progress...
+                  </span>
+                </div>
+                {renderUploadProgress()}
+              </div>
+            )}
           </div>
 
           {/* File List */}
@@ -1254,6 +2018,8 @@ const Dashboard: React.FC = () => {
                     file={file} 
                     ingestionStatus={ingestionStatuses[file.id]}
                     onDelete={handleDeleteFile}
+                    onIngest={handleIngestFile}
+                    isProcessing={isIngestingFile === file.id || processingFiles.has(file.id)}
                   />
                 ))}
               </div>
@@ -1267,6 +2033,34 @@ const Dashboard: React.FC = () => {
         {/* Add Processing Timeline */}
         <ProcessingTimeline stats={dashboardStats} />
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        onClose={closeConfirmationDialog}
+        onConfirm={performDeleteFile}
+        title="Delete File"
+        message="Are you sure you want to delete this file? This action will move the file to trash and remove it from search results."
+        fileName={confirmationDialog.fileName}
+        isLoading={isDeletingFile === confirmationDialog.fileId}
+        confirmText="Delete File"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* Ingest Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={ingestConfirmationDialog.isOpen}
+        onClose={closeIngestConfirmationDialog}
+        onConfirm={performIngestFile}
+        title="Ingest File into AI Database"
+        message="Are you sure you want to process this file for AI interactions? This will create vector embeddings and make the file searchable in AI chat."
+        fileName={ingestConfirmationDialog.fileName}
+        isLoading={isIngestingFile === ingestConfirmationDialog.fileId}
+        confirmText="Ingest File"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 };

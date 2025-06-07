@@ -7,35 +7,53 @@ const nextConfig = {
   },
   experimental: {
     optimizeCss: true,
-    serverActions: true
+    serverActions: {
+      enabled: true
+    }
   },
+  output: 'standalone',
+  compress: true,
   reactStrictMode: true,
   swcMinify: true,
   images: {
     domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com'],
+    unoptimized: true
   },
-  // Webpack configuration (will be used when Turbopack is not available)
-  webpack: (config) => {
+  // Webpack configuration
+  webpack: (config, { isServer }) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
+      net: false,
+      tls: false,
+      crypto: false,
     };
+    
+    // Handle mssql module for server-side only
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'mssql'];
+    }
+    
     return config;
   },
   // Add page configurations
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-  // Add rewrites for cleaner URLs
-  async rewrites() {
+  // Remove problematic rewrites that might cause issues
+  async headers() {
     return [
       {
-        source: '/about',
-        destination: '/about/page',
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+        ],
       },
-      {
-        source: '/api/analyze',
-        destination: '/api/analyze/route',
-      }
     ];
+  },
+  // Environment variables that should be available on the client
+  env: {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },
 }
 

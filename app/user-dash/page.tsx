@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import {
   FaHome,
@@ -35,11 +34,6 @@ import {
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { IconType } from 'react-icons';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 type SidebarItem = {
   id?: string;
@@ -119,34 +113,38 @@ export default function UserDashboard() {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Check for existing session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        if (!session) {
+        const userSession = localStorage.getItem('userSession');
+        
+        if (!userSession) {
           router.push('/auth');
           return;
         }
 
-        // Get user details
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
+        // Get user details from session
+        try {
+          const userData = JSON.parse(userSession);
+          setUser(userData);
+        } catch (e) {
+          // If session data is invalid, redirect to auth
+          localStorage.removeItem('userSession');
+          router.push('/auth');
+          return;
+        }
         
-        setUser(user);
         setIsLoading(false);
 
-        // Set up real-time auth state listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_OUT' || !session) {
+        // Setup event listener for storage changes (for logout from other tabs)
+        const handleStorageChange = (e: StorageEvent) => {
+          if (e.key === 'userSession' && !e.newValue) {
             router.push('/auth');
-          } else if (event === 'USER_UPDATED') {
-            setUser(session.user);
           }
-        });
+        };
+
+        window.addEventListener('storage', handleStorageChange);
 
         // Cleanup subscription on unmount
         return () => {
-          subscription.unsubscribe();
+          window.removeEventListener('storage', handleStorageChange);
         };
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -160,8 +158,8 @@ export default function UserDashboard() {
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      
+      localStorage.removeItem('userSession');
       
       toast.success('👋 Signed out successfully! Redirecting...', {
         position: 'top-center',

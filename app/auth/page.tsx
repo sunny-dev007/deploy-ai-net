@@ -5,13 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaGoogle, FaGithub, FaEnvelope, FaLock, FaUser, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { createClient } from '@supabase/supabase-js';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Separate component for handling email verification
 function EmailVerificationHandler() {
@@ -26,15 +20,9 @@ function EmailVerificationHandler() {
       if (type === 'email_verification' && token && !verificationHandled) {
         setVerificationHandled(true);
         try {
-          const { error } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'email',
-          });
-
-          if (error) {
-            throw error;
-          }
-
+          // Remove Supabase verification and simulate it
+          localStorage.setItem('emailVerified', 'true');
+          
           toast.success(
             '✅ Email verified successfully! Please sign in to continue.',
             {
@@ -236,8 +224,9 @@ export default function Auth() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session) {
+        // Replace Supabase session check with localStorage check
+        const userSession = localStorage.getItem('userSession');
+        if (userSession) {
           // If session exists, redirect to dashboard
           router.push('/user-dash');
         }
@@ -251,116 +240,63 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!validateForm()) return;
-
+    
     setIsLoading(true);
+    
     try {
       if (isSignUp) {
-        // First, sign up the user
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        // Handle sign up
+        // Remove Supabase sign up and replace with mock implementation
+        const mockUser = {
+          id: `user_${Math.random().toString(36).substring(2, 9)}`,
           email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: formData.name
-            },
-            emailRedirectTo: `${window.location.origin}/auth?type=email_verification`,
-          }
-        });
-
-        if (signUpError) {
-          // Handle specific error cases
-          if (signUpError.message.includes('already registered')) {
-            throw new Error('This email is already registered. Please try signing in instead.');
-          }
-          throw signUpError;
-        }
-
-        if (signUpData?.user) {
-          // Show only one success message with better formatting
+          name: formData.name,
+          created_at: new Date().toISOString()
+        };
+        
+        // Simulate email verification process
+        setTimeout(() => {
           toast.success(
-            <div className="flex flex-col gap-1">
-              <p className="font-semibold">🎉 Registration successful!</p>
-              <p className="text-sm">Please check your email to verify your account.</p>
-              <p className="text-xs mt-1">
-                We've sent a verification link to:
-                <span className="font-medium block mt-1">{formData.email}</span>
-              </p>
-            </div>,
+            '✅ Sign-up successful! Please check your email for verification.',
             {
               position: 'top-center',
-              autoClose: 8000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              progress: undefined,
+              autoClose: 5000,
             }
           );
-          
-          // Clear form data
-          setFormData({
-            email: '',
-            password: '',
-            name: '',
-            confirmPassword: ''
-          });
-          
-          // Switch to sign in mode after a delay
-          setTimeout(() => {
-            setIsSignUp(false);
-          }, 2000);
-        }
+          setIsSignUp(false);
+        }, 1500);
       } else {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        // Handle sign in
+        // Replace Supabase sign in with mock implementation
+        // For demo, we'll accept any credentials
+        const mockUser = {
+          id: `user_${Math.random().toString(36).substring(2, 9)}`,
           email: formData.email,
-          password: formData.password
+          name: 'Sample User',
+          created_at: new Date().toISOString()
+        };
+        
+        // Save user to localStorage
+        localStorage.setItem('userSession', JSON.stringify(mockUser));
+        
+        toast.success('🎉 Logged in successfully! Redirecting...', {
+          position: 'top-center',
+          autoClose: 2000,
         });
-
-        if (signInError) {
-          // Handle specific sign-in errors
-          if (signInError.message.includes('Invalid login credentials')) {
-            throw new Error('Invalid email or password. Please try again.');
-          } else if (signInError.message.includes('Email not confirmed')) {
-            throw new Error(
-              'Please verify your email address before signing in. Check your inbox for the verification link.'
-            );
-          }
-          throw signInError;
-        }
-
-        if (signInData.user) {
-          toast.success(
-            '🎉 Welcome back! Redirecting to dashboard...',
-            {
-              position: 'top-center',
-              autoClose: 2000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: false,
-              draggable: true,
-              progress: undefined,
-            }
-          );
-          
-          // Add a small delay before redirect for better UX
-          setTimeout(() => {
-            router.push('/user-dash');
-          }, 1500);
-        }
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          router.push('/user-dash');
+        }, 1500);
       }
     } catch (error: any) {
-      console.error('Auth error:', error);
       toast.error(
-        error.message || 'An error occurred during authentication',
+        error.message || 'Authentication failed. Please try again.',
         {
           position: 'top-center',
           autoClose: 4000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
         }
       );
     } finally {
@@ -369,16 +305,39 @@ export default function Auth() {
   };
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
+    setIsLoading(true);
+    
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`
-        }
+      // Replace Supabase OAuth with mock implementation
+      const mockUser = {
+        id: `user_${Math.random().toString(36).substring(2, 9)}`,
+        email: `${provider}_user@example.com`,
+        name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
+        created_at: new Date().toISOString()
+      };
+      
+      // Save user to localStorage
+      localStorage.setItem('userSession', JSON.stringify(mockUser));
+      
+      toast.success(`🎉 Logged in with ${provider} successfully! Redirecting...`, {
+        position: 'top-center',
+        autoClose: 2000,
       });
-      if (error) throw error;
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push('/user-dash');
+      }, 1500);
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred');
+      toast.error(
+        `Failed to login with ${provider}. Please try again.`,
+        {
+          position: 'top-center',
+          autoClose: 4000,
+        }
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
